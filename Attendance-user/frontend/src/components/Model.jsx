@@ -2,24 +2,24 @@ import React from "react";
 import "./model.css";
 
 
-export const Modal = ({ onSubmit, onCancel, closeModal, children }) => {
+export const Model = ({ onSubmit, onCancel, closeModal, children }) => {
   return (
     <div
-      className="modal-container"
+      className="model-container"
       onClick={(e) => {
-        if (e.target.className === "modal-container")
-          closeModal("Modal was closed");
+        if (e.target.className === "model-container")
+          closeModal("Model was closed");
       }}
     >
-      <div className="modal">
+      <div className="model">
         <div
-          className="modal-header"
-          onClick={() => closeModal("Modal was closed")}
+          className="model-header"
+          onClick={() => closeModal("Model was closed")}
         >
           <p className="close">&times;</p>
         </div>
-        <div className="modal-content">{children}</div>
-        <div className="modal-footer">
+        <div className="model-content">{children}</div>
+        <div className="model-footer">
           <button
             type="submit"
             className="btn btn-submit"

@@ -1,0 +1,12 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+Attendance-user/backend/appenv/
+Attendance-user/frontend/node_modules/
+*.pyc
+__pycache__/

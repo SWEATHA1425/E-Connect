@@ -46,8 +46,15 @@ const LeaveRequest = () => {
   };
 
   const handleDateChange = (date) => {
-    setSelectedDate(date);
-    console.log(selectedDate)
+    // Ensure we only set valid dates
+    if (date && moment.isMoment(date)) {
+      setSelectedDate(date);
+    } else if (date instanceof Date && !isNaN(date.getTime())) {
+      setSelectedDate(moment(date));
+    } else {
+      setSelectedDate(null);
+    }
+    console.log("Selected date:", selectedDate);
     setValidationMessage("");
   };
 
@@ -63,12 +70,26 @@ const LeaveRequest = () => {
 
   // Handlers for "Other Leave" fields
   const handleOtherFromDateChange = (date) => {
-    setOtherFromDate(date);
+    // Ensure we only set valid dates
+    if (date && moment.isMoment(date)) {
+      setOtherFromDate(date);
+    } else if (date instanceof Date && !isNaN(date.getTime())) {
+      setOtherFromDate(moment(date));
+    } else {
+      setOtherFromDate(null);
+    }
     setValidationMessage("");
   };
 
   const handleOtherToDateChange = (date) => {
-    setOtherToDate(date);
+    // Ensure we only set valid dates
+    if (date && moment.isMoment(date)) {
+      setOtherToDate(date);
+    } else if (date instanceof Date && !isNaN(date.getTime())) {
+      setOtherToDate(moment(date));
+    } else {
+      setOtherToDate(null);
+    }
     setValidationMessage("");
   };
 
@@ -86,7 +107,14 @@ const LeaveRequest = () => {
   };
   
   const handleBonusLeaveDateChange = (date) => {
-    setBonusLeaveDate(date);  // Assuming you have a state variable for bonus leave date
+    // Ensure we only set valid dates
+    if (date && moment.isMoment(date)) {
+      setBonusLeaveDate(date);
+    } else if (date instanceof Date && !isNaN(date.getTime())) {
+      setBonusLeaveDate(moment(date));
+    } else {
+      setBonusLeaveDate(null);
+    }
     setValidationMessage("");  // Clear validation message
   };
   
@@ -105,10 +133,10 @@ const LeaveRequest = () => {
     if (newLeave.leaveType === "Other Leave") {
       endpoint = "/Other-leave-request";
     }
-    if (newLeave.leaveType === "Permission") {
+    if (newLeave.leaveType === "Permission") {                                                                                                                                                                              
       endpoint = "/Permission-request";
     }
-    if (newLeave.leaveType === "Bonus Leave") {
+    if (newLeave.leaveType === "Bonus Leave") {                                                                                                   
       endpoint = "/Bonus-leave-request";  
       
     }
@@ -129,21 +157,104 @@ const LeaveRequest = () => {
         console.log(response);
         console.log(newLeave)
         setIsApplying(false);
-        if (response.data.result === "Leave request stored successfully") {
-          toast.success("Leave request stored successfully");
-          // Reload the page after 2 seconds
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
+        
+        // Handle new structured response format
+        const responseData = response.data;
+        
+        // Check if it's the new structured response
+        if (responseData.success !== undefined) {
+          if (responseData.success) {
+            // Successful submission
+            toast.success(responseData.message || "Leave request submitted successfully");
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          } else if (responseData.status === "conflict") {
+            // Business logic conflict (not an error)
+            toast.warning(`📅 ${responseData.message}`, {
+              autoClose: 6000,
+              position: "top-center"
+            });
+            setTimeout(() => {
+              toast.info(`💡 ${responseData.suggestion}`, {
+                autoClose: 5000,
+                position: "top-center"
+              });
+            }, 1000);
+          } else if (responseData.status === "validation_error") {
+            // Validation error - show detailed error message
+            toast.error(`❌ ${responseData.details || responseData.message}`, {
+              autoClose: 5000,
+              position: "top-center"
+            });
+            setTimeout(() => {
+              toast.info(`💡 ${responseData.suggestion}`, {
+                autoClose: 4000,
+                position: "top-center"
+              });
+            }, 1000);
+          }
         } else {
-          toast.warning(response.data.result);
+          // Handle legacy response format
+          const resultMessage = responseData.result || responseData.message;
+          
+          if (resultMessage === "Leave request stored successfully" || 
+              resultMessage === "Leave request processed" ||
+              resultMessage === "Bonus leave request processed" ||
+              resultMessage === "Permission request processed" ||
+              (typeof resultMessage === "string" && resultMessage.includes("successfully"))) {
+            toast.success("Leave request submitted successfully");
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          } else {
+            toast.warning(resultMessage || "Leave request processed with conditions");
+          }
         }
+        
         console.log("Leave request response:", response);
       })
       .catch((err) => {
         setIsApplying(false);
         console.error("Error:", err);
-        toast.error("Leave request failed. Please try again.");
+        
+        // Handle different types of errors
+        if (err.response && err.response.data) {
+          const errorMessage = err.response.data.detail || err.response.data.result || err.response.data.message;
+          
+          if (errorMessage && typeof errorMessage === 'string') {
+            // Check if it's a conflict error
+            if (errorMessage.includes('Conflict') || errorMessage.includes('already has')) {
+              toast.error(`⚠️ ${errorMessage}`, {
+                autoClose: 5000,
+                position: "top-center"
+              });
+              // Show additional helpful message
+              setTimeout(() => {
+                toast.info("💡 Tip: Check your leave history to view existing requests for this date", {
+                  autoClose: 4000,
+                  position: "top-center"
+                });
+              }, 1000);
+            } else if (errorMessage.includes('Sunday')) {
+              toast.error("❌ Leave requests cannot be made for Sundays", {
+                autoClose: 3000
+              });
+            } else {
+              toast.error(`❌ ${errorMessage}`, {
+                autoClose: 4000
+              });
+            }
+          } else {
+            toast.error("❌ Leave request failed. Please check your inputs and try again.", {
+              autoClose: 3000
+            });
+          }
+        } else {
+          toast.error("❌ Network error. Please check your connection and try again.", {
+            autoClose: 3000
+          });
+        }
       });
 };
 
@@ -162,16 +273,22 @@ const handleApplyButtonClick = () => {
     let newLeave;
 
     if (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Bonus Leave") {
-      let formattedSelectedDate = selectedDate;
-      // Convert selectedDate to a Date object if it's not already
-      if (!(selectedDate instanceof Date)) {
-        formattedSelectedDate = new Date(selectedDate);
+      let formattedSelectedDate;
+      
+      // Handle moment objects or Date objects
+      if (moment.isMoment(selectedDate)) {
+        formattedSelectedDate = selectedDate.format("YYYY-MM-DD");
+      } else if (selectedDate instanceof Date) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        formattedSelectedDate = `${year}-${month}-${day}`;
+      } else {
+        setValidationMessage("Invalid date selected");
+        return;
       }
 
-      const year = formattedSelectedDate.getFullYear();
-      const month = String(formattedSelectedDate.getMonth() + 1).padStart(2, "0");
-      const day = String(formattedSelectedDate.getDate()).padStart(2, "0");
-      formattedSelectedDate = `${year}-${month}-${day}`;
+  // Already formatted as YYYY-MM-DD above, no need to reformat
 
       newLeave = {
         leaveType,
@@ -180,8 +297,7 @@ const handleApplyButtonClick = () => {
         requestDate: new Date().toISOString().split('T')[0],
       };
     } else if (leaveType === "Other Leave") {
-      let formattedFromDate = otherFromDate;
-      let formattedToDate = otherToDate;
+      let formattedFromDate, formattedToDate;
 
       // Convert otherFromDate to a Date object if it's not already
       if (!(otherFromDate instanceof Date)) {
@@ -201,16 +317,22 @@ const handleApplyButtonClick = () => {
         requestDate: new Date().toISOString().split('T')[0],
       };
     } else if (leaveType === "Permission") {
-      let formattedSelectedDate = selectedDate;
-      // Convert selectedDate to a Date object if it's not already
-      if (!(selectedDate instanceof Date)) {
-        formattedSelectedDate = new Date(selectedDate);
+      let formattedSelectedDate;
+      
+      // Handle moment objects or Date objects
+      if (moment.isMoment(selectedDate)) {
+        formattedSelectedDate = selectedDate.format("YYYY-MM-DD");
+      } else if (selectedDate instanceof Date) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        formattedSelectedDate = `${year}-${month}-${day}`;
+      } else {
+        setValidationMessage("Invalid date selected");
+        return;
       }
 
-      const year = formattedSelectedDate.getFullYear();
-      const month = String(formattedSelectedDate.getMonth() + 1).padStart(2, "0");
-      const day = String(formattedSelectedDate.getDate()).padStart(2, "0");
-      formattedSelectedDate = `${year}-${month}-${day}`;
+  // Already formatted as YYYY-MM-DD above, no need to reformat
 
       newLeave = {
         leaveType,
@@ -230,25 +352,25 @@ const isWeekday = (date) => {
   return day !== 0 && date >= new Date(); // 0 = Sunday
 };
 
-const isValidDate = (current, leaveType) => {
-  // Convert moment object to Date if necessary
-  const date = current instanceof Date ? current : current.toDate();
+  const isValidDate = (current, leaveType) => {
+    // Convert moment object to Date if necessary
+    const date = current instanceof Date ? current : current.toDate();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  // Check if the selected date is a Sunday (getDay() returns 0 for Sunday)
-  if (date.getDay() === 0) {
-    return false; // Disable Sunday selection
-  }
+    // Check if the selected date is a Sunday (getDay() returns 0 for Sunday)
+    if (date.getDay() === 0) {
+      return false; // Disable Sunday selection
+    }
 
-  if (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Permission" || leaveType === "Other Leave" || leaveType === "Bonus Leave") {
-    // Allow all days except Sundays
-    return date >= today;
-  }
+    if (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Permission" || leaveType === "Other Leave" || leaveType === "Bonus Leave") {
+      // Allow all days except Sundays and past dates
+      return date >= today;
+    }
 
-  return false;
-};
+    return false;
+  };
 
 
 
@@ -441,6 +563,23 @@ const isValidDate = (current, leaveType) => {
               {validationMessage}
             </p>
           )}
+
+          {/* Helpful notice section */}
+          <div className="mt-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>Note:</strong> You cannot submit multiple leave requests for the same date. 
+                  If you see a conflict message, check your leave history to view existing requests.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <div className="mt-4">
             <button

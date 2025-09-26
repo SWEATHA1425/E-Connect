@@ -45,7 +45,7 @@ function JEdit({ edit, data, filename, id, toggle }) {
         id: id,
         data: JSON.stringify(Jsondata.data),
         name: Jsondata.filename,
-        fileid: LS.get("id"),
+        fileid: LS.get("userid"),
       })
         .then((res) => {
           console.log(res.data);

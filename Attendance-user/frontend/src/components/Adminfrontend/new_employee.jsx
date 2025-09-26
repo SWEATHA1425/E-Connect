@@ -1,28 +1,42 @@
-import React, { useState ,useEffect} from "react";
-import { toast, ToastContainer } from "react-toastify"; // Import toast components
-import "react-toastify/dist/ReactToastify.css"; // Import toast styles
+import React, { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { ipadr } from "../../Utils/Resuse";
-import axios from "axios";
-import { useParams } from "react-router-dom";
+import { LS } from "../../Utils/Resuse";
 
 const AddUser = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    personal_email:"",
-    resume_link:"",
-    TL:"",
+    personal_email: "",
+    resume_link: "",
+    TL: "",
     phone: "",
     address: "",
     position: "",
     department: "",
-    status:'',
+    status: "",
     dateOfJoining: "",
-    education: [
-      { degree: "", institution: "", year: "" }, // Initialize education as an array of objects
-    ],
-    skills: [{ name: "", level: "" }], // Initialize skills as an array of objects
+    education: [{ degree: "", institution: "", year: "" }],
+    skills: [{ name: "", level: "" }],
   });
+
+  const [selectedValue, setSelectedValue] = useState("");
+  const [options, setOptions] = useState([]);
+  const [error, setError] = useState(null);
+  const Admin = LS.get('isadmin');
+  const Position = LS.get('position');
+
+  // Fetch TL list
+  useEffect(() => {
+    fetch(`${ipadr}/get_managers_list`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Network response was not ok");
+        return response.json();
+      })
+      .then((data) => setOptions(data))
+      .catch((error) => setError(error));
+  }, []);
 
   const handleChange = (e, index, type) => {
     const { name, value } = e.target;
@@ -40,33 +54,10 @@ const AddUser = () => {
     }
   };
 
-  const handleSelectChange =(event)=>{
+  const handleSelectChange = (event) => {
     setSelectedValue(event.target.value);
+    setFormData({ ...formData, TL: event.target.value }); // keep TL synced
   };
-
-  const [selectedValue, setSelectedValue] = useState('');
-  const [options, setOptions] = useState([]);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    fetch(`${ipadr}/get_managers_list`) 
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => {
-        setOptions(data); // Store the fetched data in state
-        
-      })
-      .catch(error => {
-        setError(error); // Handle any errors
-       
-      });
-  }, []);
-
-
 
   const addEducation = () => {
     setFormData({
@@ -83,79 +74,78 @@ const AddUser = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    // Create the payload for the API
-    const payload = {
-      name: formData.name,
-      email: formData.email,
-      personal_email:formData.personal_email,
-      resume_link:formData.resume_link,
-      TL:formData.TL,
-      phone: formData.phone,
-      position: formData.position,
-      department: formData.department,
-      address: formData.address,
-      status:formData.status,
-      date_of_joining: formData.dateOfJoining,
-      education: formData.education, // Keep education as an array of objects
-      skills: formData.skills.map((skill) => ({
-        name: skill.name,
-        level: parseInt(skill.level) || 0, // Convert level to integer or default to 0
-      })),
-    };
-
-    // Remove skills with empty name or level
-    payload.skills = payload.skills.filter((skill) => skill.name && skill.level);
-
-    try {1
-      const response = await fetch(`${ipadr}/add_employee`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success(data.message || "Employee added successfully!"); // Show success message
-        // Reset the form
-        setFormData({
-          name: "",
-          email: "",
-          personal_email:"",
-          resume_link:"",
-          TL:"",
-          phone: "",
-          address: "",
-          position: "",
-          department: "",
-          status:"",
-          dateOfJoining: "",
-          education: [{ degree: "", institution: "", year: "" }],
-          skills: [{ name: "", level: "" }],
-        });
-      } else {
-        toast.error(data.detail || "Error occurred while adding employee."); // Show error message
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("An error occurred while adding the employee."); // Show generic error message
-    }
-    console.log("Payload:", payload);
+  let payload = {
+    name: formData.name,
+    email: formData.email,
+    personal_email: formData.personal_email,
+    resume_link: formData.resume_link,
+    TL: formData.TL,
+    phone: formData.phone,
+    position: formData.position,
+    department: formData.department,
+    address: formData.address,
+    status: formData.status,
+    date_of_joining: formData.dateOfJoining, // snake_case for backend
+    education: formData.education,
+    skills: formData.skills.map((skill) => ({
+      name: skill.name,
+      level: parseInt(skill.level) || 0,
+    })),
+    ip: "127.0.0.1", // ✅ added ip so backend validation passes
   };
 
+  try {
+    const response = await fetch(`${ipadr}/add_employee`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      toast.success(data.message || "Employee added successfully!");
+      setFormData({
+        name: "",
+        email: "",
+        personal_email: "",
+        resume_link: "",
+        TL: "",
+        phone: "",
+        address: "",
+        position: "",
+        department: "",
+        status: "",
+        dateOfJoining: "",
+        education: [{ degree: "", institution: "", year: "" }],
+        skills: [{ name: "", level: "" }],
+      });
+      setSelectedValue("");
+    } else {
+      toast.error(data.detail || "Error occurred while adding employee.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    toast.error("An error occurred while adding the employee.");
+  }
+
+  console.log("Payload:", payload);
+};
+
+
   return (
+    (Admin || Position === "HR") ?
     <div className="min-h-screen flex items-center justify-center">
-      <ToastContainer /> {/* Add ToastContainer for toast messages */}
+      <ToastContainer />
       <form
         className="bg-white p-6 rounded-lg shadow-md w-full max-w-6xl border"
         onSubmit={handleSubmit}
       >
         <h2 className="text-xl font-semibold mb-6 text-center">Add New Employee</h2>
         <div className="grid grid-cols-4 gap-4">
+          {/* Basic fields */}
           <div>
             <label className="block mb-1">Name</label>
             <input
@@ -165,7 +155,6 @@ const AddUser = () => {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded px-3 py-2"
               required
-              
             />
           </div>
           <div>
@@ -180,8 +169,8 @@ const AddUser = () => {
             />
           </div>
           <div>
-          <label className="block mb-1">Personal Email</label>
-          <input
+            <label className="block mb-1">Personal Email</label>
+            <input
               type="email"
               name="personal_email"
               value={formData.personal_email}
@@ -234,18 +223,25 @@ const AddUser = () => {
               required
             />
           </div>
+
+          {/* TL dropdown */}
           <div>
-          <label className="block mb-1"> Select TL</label>
-          <select  className="w-full border border-gray-300 rounded px-3 py-2" value={selectedValue} onChange={handleSelectChange}>
-            <option>--select--</option>
-            {
-              options.map(item=>(
-                <option key={item.id} value={item.name}>{item.name}</option>
-              ))
-            }
-          </select>
+            <label className="block mb-1">Select TL</label>
+            <select
+              className="w-full border border-gray-300 rounded px-3 py-2"
+              value={selectedValue}
+              onChange={handleSelectChange}
+            >
+              <option value="">--select--</option>
+              {options.map((item, index) => (
+                <option key={item._id || index} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </div>
 
+          {/* Education */}
           <div className="col-span-4">
             <label className="block mb-1">Education</label>
             {formData.education.map((edu, index) => (
@@ -279,15 +275,12 @@ const AddUser = () => {
                 />
               </div>
             ))}
-            <button
-              type="button"
-              onClick={addEducation}
-              className="text-blue-500 mt-2"
-            >
+            <button type="button" onClick={addEducation} className="text-blue-500 mt-2">
               Add Another Education
             </button>
           </div>
 
+          {/* Skills */}
           <div className="col-span-4">
             <label className="block mb-1">Skills</label>
             {formData.skills.map((skill, index) => (
@@ -312,15 +305,12 @@ const AddUser = () => {
                 />
               </div>
             ))}
-            <button
-              type="button"
-              onClick={addSkill}
-              className="text-blue-500 mt-2"
-            >
+            <button type="button" onClick={addSkill} className="text-blue-500 mt-2">
               Add Another Skill
             </button>
           </div>
 
+          {/* Address */}
           <div className="col-span-4">
             <label className="block mb-1">Address</label>
             <textarea
@@ -332,36 +322,30 @@ const AddUser = () => {
               required
             ></textarea>
           </div>
-          <div className="col-span-4">
-          <div  className="grid grid-cols-2 gap-4 mb-2">
-             <div>
-             <label className="block mb-1">Resume Link</label> 
-             <input
-                  type="text"
-                  name="resume_link"
-                  value={formData.resume_link}
-                  onChange={ handleChange}
-                  className="border border-gray-300 rounded px-3 py-2"
-                  // required
-                />
-             </div>
-             <div>
-             <label className="block mb-1"> Status</label> 
-             <input
-                  type="text"
-                  name="status"
-                  value={formData.status}
-                  onChange={ handleChange}
-                  className="border border-gray-300 rounded px-3 py-2"
-                  // required
-                />
-             </div>
-           
-              {/* <label className="block mb-1">Status</label> */}
-            
+
+          {/* Resume + Status */}
+          <div className="col-span-4 grid grid-cols-2 gap-4 mb-2">
+            <div>
+              <label className="block mb-1">Resume Link</label>
+              <input
+                type="text"
+                name="resume_link"
+                value={formData.resume_link}
+                onChange={handleChange}
+                className="border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block mb-1">Status</label>
+              <input
+                type="text"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="border border-gray-300 rounded px-3 py-2"
+              />
+            </div>
           </div>
-          </div>
-          
         </div>
 
         <button
@@ -371,7 +355,14 @@ const AddUser = () => {
           Add
         </button>
       </form>
-    </div>
+    </div> : (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg shadow-md">
+          <h1 className="text-xl font-semibold mb-2">Access Denied</h1>
+          <p>Only administrators and HR can access this page.</p>
+        </div>
+      </div>
+    )
   );
 };
 

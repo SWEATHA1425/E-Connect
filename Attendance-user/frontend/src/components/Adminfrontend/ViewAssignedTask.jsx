@@ -32,12 +32,12 @@ const ViewAssignedTask=()=>{
 
      },[])
 
-     const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const taskItems = taskData.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const taskItems = taskData.slice(
+        indexOfFirstItem,
+        indexOfLastItem
+    );
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 

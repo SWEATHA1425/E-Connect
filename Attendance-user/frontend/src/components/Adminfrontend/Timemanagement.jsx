@@ -254,7 +254,7 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faDownload, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { ipadr } from "../../Utils/Resuse";
 import "react-date-range/dist/styles.css";
@@ -262,6 +262,7 @@ import "react-date-range/dist/theme/default.css";
 import { DateRangePicker } from "react-date-range";
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import * as XLSX from 'xlsx';
+import { LS } from "../../Utils/Resuse";
 
 const Timemanagement = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -275,6 +276,7 @@ const Timemanagement = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const Admin = LS.get('isadmin');
   const [dateRange, setDateRange] = useState([
     {
       startDate: null,
@@ -367,6 +369,7 @@ const Timemanagement = () => {
   };
 
   return (
+    (Admin) ?
     <div className="mr-8 p-10 bg-white min-h-96 lg:min-h-[90vh] w-full shadow-black rounded-xl justify-center items-center relative jsonback ml-10 rounded-md">
       <div className="">
         <h1 className="text-5xl font-semibold font-inter pb-2 text-transparent bg-gradient-to-r from-zinc-600 to-zinc-950 bg-clip-text border-b-2">
@@ -516,7 +519,17 @@ const Timemanagement = () => {
           </button>
         </div>
       </div>
-    </div>
+    </div> : (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 text-6xl mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
+            <p className="text-gray-600">You don't have permission to access this page. Only administrators can manage this page.</p>
+          </div>
+        </div>
+      </div>
+      )
   );
 };
 

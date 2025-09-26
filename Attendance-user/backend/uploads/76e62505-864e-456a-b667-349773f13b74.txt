@@ -1,0 +1,9 @@
+Editing Files (Client-Side Pre-processing):
+Image Previews:
+For image files, you can create a URL using URL.createObjectURL(file) to display a client-side preview before uploading.
+
+Basic Image Manipulation:
+Libraries like react-image-crop or react-avatar-editor can be used for client-side image cropping or resizing before upload.
+
+Text File Editing:
+For text files, you can read the file content using FileReader and display it in a textarea for editing.

@@ -10,7 +10,6 @@ export default function Clockdashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-      
         const userid = LS.get("userid");
         const attendanceResponse = await axios.get(`${ipadr}/clock-records/${userid}`);
         console.log("API Response:", attendanceResponse.data);
@@ -23,7 +22,6 @@ export default function Clockdashboard() {
         setAttendanceData([]);
       }
     };
-    
     fetchData();
   }, []);
 

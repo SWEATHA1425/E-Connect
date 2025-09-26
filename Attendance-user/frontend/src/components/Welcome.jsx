@@ -52,7 +52,7 @@ const WelcomePage = () => {
             {data.map((item, index) => (
               <div
                 key={index}
-                className="w-full p-6 rounded-lg bg-blue-50 bg-gradient-to-tr from-white to-blue-200 transition-transform duration-300 transform hover:scale-105 border-x shadow-xl  flex flex-col justify-between"
+                className="w-4 p-6 rounded-lg bg-blue-50 bg-gradient-to-tr from-white to-blue-200 transition-transform duration-300 transform hover:scale-105 border-x shadow-xl  flex flex-col justify-between"
               >
                 <div>
                   {item.icon}
@@ -80,4 +80,3 @@ const WelcomePage = () => {
 };
 
 export default WelcomePage;
-

@@ -11,7 +11,7 @@ numpy==1.26.3
 pandas==2.2.0
 pydantic==2.5.3
 pydantic_core==2.14.6
-PyJWT==2.8.0
+PyJWT==2.10.1
 pymongo==4.6.1
 python-dateutil==2.8.2
 python-decouple==3.8
@@ -22,3 +22,7 @@ starlette==0.35.1
 typing_extensions==4.9.0
 tzdata==2023.4
 uvicorn==0.27.0
+websockets==11.0.3
+APScheduler==3.10.4
+requests==2.31.0
+certifi==2024.2.2

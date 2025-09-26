@@ -1,9 +1,9 @@
 from datetime import datetime
 import pytz
 import re
-from pydantic import BaseModel, validator, ValidationError
-from typing import Optional, List, Dict, Union, Any
-from datetime import date
+from pydantic import BaseModel, validator, ValidationError,Field
+from typing import Any, Optional, List, Dict, Union
+from datetime import date,datetime
 
 class Item(BaseModel):
     email: str
@@ -22,6 +22,25 @@ class Item(BaseModel):
     phone: str
     position: str
     date_of_joining: str
+
+    # @validator("email")
+    # def validate_email(cls, value):
+    #     if not value:
+    #         raise ValueError("Email must be provided.")
+    #     # if (("@rbg" not in value) and ('.ai' not in value)):
+    #     #     raise ValueError("Invalid email.")
+    
+    #@validator("password")
+    #def validate_password(cls, value):
+     #   if not value:
+      #      raise ValueError("Password must be provided.")
+       # if len(value) < 8:
+        #    raise ValueError("Password must be at least 8 characters long.")
+        #if not re.search(r"[0-9]", value):
+         #   raise ValueError("Password must contain at least one number.")
+        #if not re.search(r"[@#$%&]", value):
+         #   raise ValueError("Password must contain at least one special character (@#$%&).")
+        #return value*/
     
     @validator("name")
     def validate_name(cls, value):
@@ -124,14 +143,13 @@ class Comment(BaseModel):
     timestamp: str
 
 class FileRef(BaseModel):
-    id: str           
+    id: str             # string id (uuid or stringified ObjectId)
     name: str
     size: int
     type: str
     uploadedAt: str
     uploadedBy: Optional[str] = "Employee"
     path: Optional[str] = None
-
 
 class Tasklist(BaseModel):
     task: List[str]
@@ -234,6 +252,22 @@ class EditEmployee(BaseModel):
                 except (ValueError, TypeError):
                     skill['level'] = 0
         return v
+# class EditEmployee(BaseModel):
+#  userid: str
+#  name: str
+#  email: str
+#  phone: str
+#  position: str
+#  department: str
+#  address: str 
+#  education: List[Dict[str, Union[str,int]]] # A list of educational qualifications
+#  skills: List[Dict[str, Union[str, int]]] # A list of skills with 'name' and 'level'
+#  TL: str
+#  personal_email: str
+#  resume_link:str
+#  status: str
+#  ip:str
+
 
 # class Taskassign(BaseModel):
 #     Task_details: List[Dict[str, Union[str, int, List[str]]]]
@@ -244,4 +278,111 @@ class Settings(BaseModel):
     authjwt_secret_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiJhZG1pbl9pZCIsInJvbGUiOiJhZG1pbiIsImV4cGlyZXMiOjE3MDk3MTM2NjEuMjc5ODk4NH0.DwYyZBkO20Kicz5vvqxpCrxZ7279uHRlLttNDBVO-_E"
     authjwt_algorithm: str = "HS256"
 
+class NotificationModel(BaseModel):
+    userid: str
+    title: str
+    message: str
+    type: str
+    priority: Optional[str] = "medium"
+    action_url: Optional[str] = None
 
+class NotificationUpdate(BaseModel):
+    is_read: bool
+
+class NotificationFilter(BaseModel):
+    userid: Optional[str] = None
+    type: Optional[str] = None
+    is_read: Optional[bool] = None
+
+class Holiday(BaseModel):
+    date: str   # YYYY-MM-DD
+    name: str
+
+class HolidayYear(BaseModel):
+    year: int
+    holidays: List[Holiday]
+
+class AssignPayload(BaseModel):
+    task_id: str
+    assigned_to: str
+    tl: str
+    title: str
+
+
+# Message schema aligned with Chat.jsx
+class Message(BaseModel):
+    id: Optional[str] = None          # unique ID (MongoDB _id or frontend tempId)
+    tempId: Optional[str] = None      # temporary ID from frontend
+    type: str = "message"             # "message", "reaction", "thread"
+    from_user: str                    # sender userId
+    to_user: str                      # recipient userId
+    text: Optional[str] = None        # text message
+    file: Optional[str] = None        # file name if uploaded
+    chatId: str                       # deterministic chat id (userA_userB)
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Thread message schema (replies inside a thread)
+class ThreadMessage(BaseModel):
+    id: Optional[str] = None
+    tempId: Optional[str] = None
+    type: str = "thread"
+    rootId: str                       # parent message ID
+    from_user: str
+    to_user: str
+    text: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# Reaction schema
+class Reaction(BaseModel):
+    type: str = "reaction"
+    messageId: str                    # message being reacted to
+    emoji: str
+    user: str                         # who reacted
+    delta: Optional[int] = 1          # +1 or -1 for toggling
+
+
+# Chat history response
+class ChatHistoryResponse(BaseModel):
+    chatId: str
+    messages: List[Message]
+
+
+#  Online presence payload
+class PresencePayload(BaseModel):
+    type: str = "presence"
+    users: List[str]
+    
+class Settings(BaseModel):
+    authjwt_secret_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiJhZG1pbl9pZCIsInJvbGUiOiJhZG1pbiIsImV4cGlyZXMiOjE3MDk3MTM2NjEuMjc5ODk4NH0.DwYyZBkO20Kicz5vvqxpCrxZ7279uHRlLttNDBVO-_E"
+    authjwt_algorithm: str = "HS256"
+
+
+# Assign Docs
+class AssignPayload(BaseModel):
+    docName: str
+    userIds: List[str]
+
+class ReviewPayload(BaseModel):
+    userId: str
+    docName: str
+    status: str  # "verified"
+    remarks: str = ""
+
+class ReviewDocument(BaseModel):
+    file_id: str
+    status: str
+    remarks: str = None
+
+class GroupCreate(BaseModel):
+    name: str
+    members: List[str]
+
+class GroupUpdate(BaseModel):
+    name: Optional[str]
+    members: Optional[List[str]]
+
+class UpdateGroupPayload(BaseModel):
+    name: str
+    members: list[str]

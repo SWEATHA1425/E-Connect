@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUserClock, faHome, faClipboardList } from "@fortawesome/free-solid-svg-icons";
+import { faUserClock, faHome, faClipboardList, faCalendarDay } from "@fortawesome/free-solid-svg-icons";
 import { LS } from "../../Utils/Resuse";
 
 const Leavemanagement = () => {
@@ -31,6 +31,14 @@ const Leavemanagement = () => {
       link1: "/admin/history",
       link2:"/User/history"
     },
+    {
+      title: "Employees Attendance Percentage",
+      desc: "Easy tracking of employee attendance percentage",
+      icon: <FontAwesomeIcon icon={faCalendarDay} className="text-6xl mb-6 text-zinc-700" />,
+      button: "View now",
+      link1: "/admin/attendance",
+      link2:"/User/attendance"
+    },
   ];
 
   return (
@@ -40,7 +48,7 @@ const Leavemanagement = () => {
           Leave Management
         </h1>
         <div className="my-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {data.map((item, index) => (
               <div
                 key={index}

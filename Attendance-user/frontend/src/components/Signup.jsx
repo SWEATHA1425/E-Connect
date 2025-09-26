@@ -72,7 +72,7 @@ export default function Signup() {
             className="placeholder:pl-[1rem] placeholder:text-[0.8rem] w-full border-black border-2 rounded-md py-1.5 px-[3rem]"
           />{" "}
         </div>
-        {/* <div className="mb-[1rem] md:mb-[2rem]">
+        <div className="mb-[1rem] md:mb-[2rem]">
           <p className="text-[0.7rem] md:text-[1rem] md:font-Merriweather text-start font-bold mb-[0.4rem] placeholder:pl-[1rem] placeholder:text-[0.8rem]">
             {" "}
             Confirm Password
@@ -81,7 +81,7 @@ export default function Signup() {
             placeholder="Confirm Password"
             className="placeholder:pl-[1rem] placeholder:text-[0.8rem] w-full border-black border-2 rounded-md py-1.5"
           />{" "}
-        </div> */}
+        </div>
         <button
           onClick={(e) => {
             Signup();

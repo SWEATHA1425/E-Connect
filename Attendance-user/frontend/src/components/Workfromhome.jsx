@@ -49,53 +49,54 @@ const WorkFromHome = () => {
     setSelectedIp(e.target.value);
   };
 
-  const remoteworkrequestapi = (newRequest) => {
-    setIsApplying(true);
-    const userid = LS.get("userid");
-    const employeeName = LS.get("name");
-  
-    console.log("Sending Request Data:", { userid, employeeName, ...newRequest });
-  
-    Baseaxios.post("/remote-work-request", {
-      userid,
-      employeeName,
-      ...newRequest,
-    })
-      .then((response) => {
-        console.log("Response:", response);
-        setIsApplying(false);
-        if (response.data.message === "Remote work request stored successfully") {
-          toast.success(response.data.result);
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        } else {
-          toast.warning(response.data.result);
-        }
-      })
-      .catch((err) => {
-        setIsApplying(false);
-        toast.error("Failed to submit remote work request");
-        console.error("Error submitting remote work request:", err.response || err);
-      });
+const remoteworkrequestapi = (newRequest) => {
+  setIsApplying(true);
+  const userid = LS.get("userid");
+  const employeeName = LS.get("name");
+
+  const payload = {
+    userid,
+    employeeName,
+    ...newRequest,
   };
 
-  const handleApplyButtonClick = () => {
-    if (fromDate && toDate && reason && ip) {
-      const newRequest = {
-        fromDate: moment(fromDate).format("YYYY-MM-DD"),
-        toDate: moment(toDate).format("YYYY-MM-DD"),
-        requestDate: moment().toISOString().split('T')[0],
-        reason: reason,
-        ip: ip
-      };
-      remoteworkrequestapi(newRequest);
+  console.log("✅ Final Payload to API:", payload);
+
+  Baseaxios.post("/remote-work-request", payload)
+  .then((response) => {
+    const { status, message } = response.data;
+    console.log("API Response:", response.data);
+    if (status === "success") {
+      toast.success(message || "Request submitted successfully!");
     } else {
-      toast.error("Please fill in all fields including IP selection.", {
-        position: "top-right",
-      });
+      toast.warning(message || "Something went wrong!");
     }
-  };
+  })
+  .catch((err) => {
+    console.error("API Error:", err);
+    toast.error("Failed to submit request. Try again.");
+  });
+
+
+};
+
+const handleApplyButtonClick = () => {
+  if (fromDate && toDate && reason && ip) {
+    const newRequest = {
+      fromDate: moment(fromDate).format("YYYY-MM-DD"),
+      toDate: moment(toDate).format("YYYY-MM-DD"),
+      requestDate: moment().format("YYYY-MM-DD"),  // ✅ normalized to YYYY-MM-DD
+      reason: reason.trim(),                       // ✅ ensured always included
+      ip: ip.trim(),                               // ✅ ensured always included
+    };                                        
+    remoteworkrequestapi(newRequest);
+  } else {
+    toast.error("Please fill in all fields including IP selection.", {
+      position: "top-right",
+    });
+  }
+};
+
 
   const handleCancel = () => {
     setFromDate(null);
