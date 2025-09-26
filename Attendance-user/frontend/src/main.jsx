@@ -240,7 +240,7 @@ const router = createBrowserRouter([
 { path: "wfh_details", element: <RemoteDetails />},
 { path: "attendance", element: <Attendance />},
 { path: "individualStats", element: <AttendanceStats />},
-{ path: ":userid", element: <TaskAssign /> },
+{ path: ":userid", element: <AssignTask /> },
     ],
   },
   {
@@ -297,7 +297,7 @@ const router = createBrowserRouter([
       },
       {
         path: ":userid",
-        element: <TaskAssign />,
+        element: <AssignTask />,
       },
       {
         path: "notifications",
