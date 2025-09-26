@@ -29,16 +29,12 @@ import TaskPage from "./components/Taskpage";
 import EmployeeDetails from "./components/EmployeeDetails";
 // import TaskAssign from "./components/TaskAssign";
 import ViewAssignedTask from "./components/ViewAssignedTask";
-import TaskDetails from "./components/TaskDetails";
+import TaskDetailsPage from "./components/TaskDetailsPage";
 import LoginPage from "./components/Loginpage";
 import Navbar from "./components/Navbar";
-import EmployeeTaskProgress from "./components/EmployeeTaskProgress";
-import ManagerTaskProgress from "./components/ManagerTaskProgress";
-import EmployeeTaskAssign from './components/EmployeeTaskAssign';
-import ManagerTaskAssign from './components/ManagerTaskAssign';
-import EmployeeprogressDetail from './components/EmployeeprogressDetail';
-import ManagerprogressDetail from './components/ManagerprogressDetail';
-import TaskDetailsPage from './components/TaskDetailsPage';
+import TaskProgress from "./components/TaskProgress";
+import AssignTask from './components/AssignTask';
+import ProgressDetail from './components/progressDetail';
 
 
 
@@ -71,7 +67,9 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
   },
-
+  // {path:"Login",
+  // element:<LoginPage />
+  // },
   {
     path: "/User",
     element: <DashboardPage />,
@@ -170,23 +168,25 @@ const router = createBrowserRouter([
       },
       {
   path: "manager-employee",
-  element: <EmployeeTaskProgress/>,
+  element: <TaskProgress/>,
 },
 {path:"/User/manager-task-detail/:taskId",
-  element:<EmployeeprogressDetail/>,
+  element:<ProgressDetail role="manager" dashboardRoute="/User/manager-employee" commentLabel="Manager" fileUploadLabel="Manager" />, 
 },
       {
   path: "hr-manager",
-  element: <ManagerTaskProgress/>,
+  element: <TaskProgress/>,
 },
 {path:"/User/hr-task-detail/:taskId",
-  element:<ManagerprogressDetail/>,
+  element:<ProgressDetail role="hr" dashboardRoute="/User/hr-manager" commentLabel="HR" fileUploadLabel="HR" />, 
 },
-{path:"employee-task-assign", 
-  element:<EmployeeTaskAssign />
+{
+  path: "employee-task-assign",
+  element: <AssignTask assignType="manager-to-employee" />
 },
-{path:"manager-task-assign", 
-  element:<ManagerTaskAssign />
+{
+  path: "manager-task-assign",
+  element: <AssignTask assignType="hr-to-manager" />
 }
 
 
