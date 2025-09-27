@@ -30,8 +30,12 @@ from bson import ObjectId
 import asyncio
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# GridFS setup
+from pymongo import MongoClient
+import gridfs
+client = MongoClient("mongodb://localhost:27017") 
+db = client["RBG_AI"]  
+fs = gridfs.GridFS(db)
 
 from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
@@ -1282,7 +1286,11 @@ async def fetch_remote_work_requests(TL: str = Query(..., alias="TL")):
     remote_work_requests = get_remote_work_requests(TL)
     return {"remote_work_requests": remote_work_requests}
 
-
+# TL Page User Remote Work Requests
+@app.get("/TL_page_remote_work_requests")
+async def fetch_remote_work_requests(TL: str = Query(..., alias="TL")):
+    remote_work_requests = get_TL_page_remote_work_requests(TL)
+    return {"remote_work_requests": remote_work_requests}
 # HR Remote Work Responses
 @app.put("/update_remote_work_requests")
 async def update_remote_work_request_status(userid: str = Form(...), status: str = Form(...), id: str = Form(...)):
@@ -2595,41 +2603,32 @@ async def upload_task_file(
     uploaded_by: str = Form(...)
 ):
     try:
-        file_id = str(uuid.uuid4())
-        file_ext = os.path.splitext(file.filename)[1]
-        stored_name = f"{file_id}{file_ext}"
-        file_path = os.path.join(UPLOAD_DIR, stored_name)
-
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-
+        file_bytes = await file.read()
+        gridfs_id = fs.put(file_bytes, filename=file.filename, content_type=file.content_type, uploadedBy=uploaded_by)
         file_meta = {
-            "id": file_id,
-            "name": file.filename,         # original name
-            "stored_name": stored_name, 
-            "path": file_path,   # internal safe name
-            "size": os.path.getsize(file_path),
+            "id": str(gridfs_id),
+            "name": file.filename,
+            "size": len(file_bytes),
             "type": file.content_type,
             "uploadedAt": datetime.now().isoformat(),
             "uploadedBy": uploaded_by,
+            "gridfs_id": str(gridfs_id)
         }
 
         ok = Mongo.add_file_to_task(taskid, file_meta)
         if not ok:
-            os.remove(file_path)
+            fs.delete(gridfs_id)
             raise HTTPException(status_code=404, detail="Task not found")
 
-        # Send file upload notifications
+        # Send file upload notifications (unchanged)
         try:
             task = Mongo.Tasks.find_one({"_id": ObjectId(taskid)})
             if task:
                 task_title = task.get("task", "Task")
                 task_userid = task.get("userid")
-                
                 # Get uploader name
                 uploader = Mongo.Users.find_one({"_id": ObjectId(uploaded_by)}) if ObjectId.is_valid(uploaded_by) else None
                 uploader_name = uploader.get("name", "Team Member") if uploader else "Team Member"
-                
                 # Notify task owner if file uploaded by someone else
                 if task_userid and uploaded_by != task_userid:
                     Mongo.create_notification(
@@ -2647,7 +2646,6 @@ async def upload_task_file(
                             "uploaded_by": uploaded_by
                         }
                     )
-                
                 # Notify manager if they exist and didn't upload the file
                 assigned_by = task.get("assigned_by")
                 if assigned_by and assigned_by != "self" and assigned_by != uploaded_by and assigned_by != task_userid:
@@ -2680,24 +2678,15 @@ async def get_task_file(taskid: str, fileid: str):
     file_meta = Mongo.get_task_file_metadata(taskid, fileid)
     if not file_meta:
         raise HTTPException(status_code=404, detail="File not found")
-
-    # Prefer new stored_name, fallback to old path
-    stored_name = file_meta.get("stored_name")
-    if stored_name:
-        file_path = os.path.join(UPLOAD_DIR, stored_name)
-    else:
-        file_path = file_meta.get("path")  # old records
-        if not file_path:
-            raise HTTPException(status_code=404, detail="Missing stored filename")
-
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found on disk")
-
-    return FileResponse(
-        file_path,
-        filename=file_meta.get("name", os.path.basename(file_path)),
-        media_type=file_meta.get("type", "application/octet-stream"),
-    )
+    gridfs_id = file_meta.get("gridfs_id")
+    if not gridfs_id:
+        raise HTTPException(status_code=404, detail="File not stored in GridFS")
+    try:
+        file_obj = fs.get(ObjectId(gridfs_id))
+        return StreamingResponse(file_obj, media_type=file_meta.get("type", "application/octet-stream"),
+                                headers={"Content-Disposition": f"attachment; filename={file_meta.get('name', 'file')}"})
+    except Exception:
+        raise HTTPException(status_code=404, detail="File not found in GridFS")
 
 
 # @app.get("/get_user/{userid}")
@@ -4031,6 +4020,7 @@ async def upload_chat_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/get_files/{chatId}")
 async def get_files(chatId: str):
     docs = list(files_collection.find({"chatId": chatId}))
@@ -4086,6 +4076,7 @@ async def upload_document(
     except Exception as e:
         print("Error storing file in MongoDB:", e)
         raise HTTPException(status_code=500, detail="500: Failed to save file in database")
+
 
 # ------------------ Download Document ------------------
 @app.get("/download_file/{file_id}")

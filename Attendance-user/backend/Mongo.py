@@ -1987,8 +1987,13 @@ def edit_the_task(
         ]
 
     # Handle comments
-    if comments is not None:
-        update_fields["comments"] = comments
+        if comments is not None:
+            update_fields["comments"] = comments
+        else:
+            # Preserve existing comments if not provided
+            existing_task = Tasks.find_one({"_id": ObjectId(taskid)}, {"comments": 1})
+            if existing_task and "comments" in existing_task:
+                update_fields["comments"] = existing_task["comments"]
 
     # Handle files safely (MERGE with existing DB)
     if files is not None:
@@ -2011,12 +2016,11 @@ def edit_the_task(
             file_entry = {
                 "id": fid,
                 "name": f.get("name", base.get("name", "")),
-                "stored_name": f.get("stored_name") or base.get("stored_name", ""),  # ✅ preserve
-                "path": f.get("path") or base.get("path", ""),                       # ✅ preserve
                 "size": int(f.get("size") or base.get("size", 0)),
                 "type": f.get("type") or base.get("type", ""),
                 "uploadedAt": f.get("uploadedAt") or base.get("uploadedAt") or datetime.utcnow().isoformat(),
                 "uploadedBy": f.get("uploadedBy") or base.get("uploadedBy", "Unknown"),
+                "gridfs_id": f.get("gridfs_id") or base.get("gridfs_id", ""),
             }
             normalized_files.append(file_entry)
 
@@ -2722,6 +2726,7 @@ def edit_the_task(
     
 def add_file_to_task(taskid: str, file_data: dict):
     try:
+        # file_data now includes gridfs_id for file storage
         result = Tasks.update_one(
             {"_id": ObjectId(taskid)},
             {"$push": {"files": file_data}}

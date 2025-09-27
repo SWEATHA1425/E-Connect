@@ -261,91 +261,89 @@ const LeaveRequest = () => {
 const handleApplyButtonClick = () => {
   if (!leaveType) {
     setValidationMessage("Select a leave type");
-  } else if (leaveType === "Other Leave" && (!otherFromDate || !otherToDate || !otherReason.trim())) {
+    return;
+  }
+
+  if (leaveType === "Other Leave" && (!otherFromDate || !otherToDate || !otherReason.trim())) {
     setValidationMessage("Complete all fields for Other Leave");
-  } else if (!selectedDate && (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Bonus Leave" )) {
+    return;
+  }
+
+  if (!selectedDate && ["Sick Leave", "Casual Leave", "Bonus Leave"].includes(leaveType)) {
     setValidationMessage("Select a valid date");
-  } else if (!reason.trim() && (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Bonus Leave")) {
+    return;
+  }
+
+  if (!reason.trim() && ["Sick Leave", "Casual Leave", "Bonus Leave"].includes(leaveType)) {
     setValidationMessage("Enter a valid reason");
-  } else if (leaveType === "Permission" && (!selectedDate || !timeSlot || !reason.trim())) {
+    return;
+  }
+
+  if (leaveType === "Permission" && (!selectedDate || !timeSlot || !reason.trim())) {
     setValidationMessage("Complete all fields for Permission");
-  } else {
-    let newLeave;
+    return;
+  }
 
-    if (leaveType === "Sick Leave" || leaveType === "Casual Leave" || leaveType === "Bonus Leave") {
-      let formattedSelectedDate;
-      
-      // Handle moment objects or Date objects
-      if (moment.isMoment(selectedDate)) {
-        formattedSelectedDate = selectedDate.format("YYYY-MM-DD");
-      } else if (selectedDate instanceof Date) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const day = String(selectedDate.getDate()).padStart(2, "0");
-        formattedSelectedDate = `${year}-${month}-${day}`;
-      } else {
-        setValidationMessage("Invalid date selected");
-        return;
-      }
+  let newLeave;
 
-  // Already formatted as YYYY-MM-DD above, no need to reformat
+  // Helper: format any date-like object into YYYY-MM-DD
+  const formatDate = (date) => {
+    if (moment.isMoment(date)) return date.format("YYYY-MM-DD");
+    if (date instanceof Date) return moment(date).format("YYYY-MM-DD");
+    if (typeof date === "string") return date; // assume already formatted
+    return null;
+  };
 
-      newLeave = {
-        leaveType,
-        selectedDate: formattedSelectedDate,
-        reason,
-        requestDate: new Date().toISOString().split('T')[0],
-      };
-    } else if (leaveType === "Other Leave") {
-      let formattedFromDate, formattedToDate;
-
-      // Convert otherFromDate to a Date object if it's not already
-      if (!(otherFromDate instanceof Date)) {
-        formattedFromDate = moment(formattedFromDate).format("YYYY-MM-DD");
-      }
-
-      // Convert otherToDate to a Date object if it's not already
-      if (!(otherToDate instanceof Date)) {
-        formattedToDate = moment(formattedToDate).format("YYYY-MM-DD");
-      }
-
-      newLeave = {
-        leaveType,
-        selectedDate: formattedFromDate,
-        ToDate: formattedToDate,
-        reason: otherReason,
-        requestDate: new Date().toISOString().split('T')[0],
-      };
-    } else if (leaveType === "Permission") {
-      let formattedSelectedDate;
-      
-      // Handle moment objects or Date objects
-      if (moment.isMoment(selectedDate)) {
-        formattedSelectedDate = selectedDate.format("YYYY-MM-DD");
-      } else if (selectedDate instanceof Date) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const day = String(selectedDate.getDate()).padStart(2, "0");
-        formattedSelectedDate = `${year}-${month}-${day}`;
-      } else {
-        setValidationMessage("Invalid date selected");
-        return;
-      }
-
-  // Already formatted as YYYY-MM-DD above, no need to reformat
-
-      newLeave = {
-        leaveType,
-        selectedDate: formattedSelectedDate,
-        timeSlot,
-        reason,
-        requestDate: new Date().toISOString().split('T')[0],
-      };
+  if (["Sick Leave", "Casual Leave", "Bonus Leave"].includes(leaveType)) {
+    const formattedSelectedDate = formatDate(selectedDate);
+    if (!formattedSelectedDate) {
+      setValidationMessage("Invalid date selected");
+      return;
     }
 
-    leaverequestapi(newLeave);
+    newLeave = {
+      leaveType,
+      selectedDate: formattedSelectedDate,
+      reason,
+      requestDate: new Date().toISOString().split("T")[0],
+    };
+  } 
+  else if (leaveType === "Other Leave") {
+    const formattedFromDate = formatDate(otherFromDate);
+    const formattedToDate = formatDate(otherToDate);
+
+    if (!formattedFromDate || !formattedToDate) {
+      setValidationMessage("Invalid Other Leave dates");
+      return;
+    }
+
+    newLeave = {
+      leaveType,
+      selectedDate: formattedFromDate,
+      ToDate: formattedToDate,
+      reason: otherReason,
+      requestDate: new Date().toISOString().split("T")[0],
+    };
+  } 
+  else if (leaveType === "Permission") {
+    const formattedSelectedDate = formatDate(selectedDate);
+    if (!formattedSelectedDate) {
+      setValidationMessage("Invalid date selected");
+      return;
+    }
+
+    newLeave = {
+      leaveType,
+      selectedDate: formattedSelectedDate,
+      timeSlot,
+      reason,
+      requestDate: new Date().toISOString().split("T")[0],
+    };
   }
+
+  leaverequestapi(newLeave);
 };
+
 
 const isWeekday = (date) => {
   const day = date.getDay();

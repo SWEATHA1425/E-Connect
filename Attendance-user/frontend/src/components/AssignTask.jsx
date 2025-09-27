@@ -185,7 +185,13 @@ const AssignTask = ({ assignType }) => {
       const response = await axios.get(`${ipadr}/get_single_task/${id}`);
       const taskdetails = response.data;
       let actualTaskData = Array.isArray(taskdetails) ? taskdetails[0] : (taskdetails.task || taskdetails);
-      SetEditmodel([{ ...actualTaskData, subtasks: normalizeSubtasks(actualTaskData.subtasks || []) }]);
+      // Ensure comments and files are present for later preservation
+      SetEditmodel([{ 
+        ...actualTaskData, 
+        subtasks: normalizeSubtasks(actualTaskData.subtasks || []),
+        comments: actualTaskData.comments || [],
+        files: actualTaskData.files || []
+      }]);
       setModalOpen(true);
     } catch (error) {
       toast.error("Error fetching task details");
@@ -300,7 +306,10 @@ const handleoneditSubmit = async () => {
       due_date: formatDate(item.due_date),
       priority: item.priority || "Medium",
       taskid: item._id,
-      subtasks: normalizeSubtasks(item.subtasks || [])
+      subtasks: normalizeSubtasks(item.subtasks || []),
+      // Preserve comments and files even if not shown in UI
+      comments: item.comments || [],
+      files: item.files || []
     };
 
     const response = await axios({
