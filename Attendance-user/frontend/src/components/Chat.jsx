@@ -526,6 +526,77 @@ export default function Chat() {
         </div>
       </div>
       <ToastContainer />
+
+      {showGroupModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+    <div className="bg-white rounded-xl shadow-lg w-96 p-6 relative">
+      <button
+        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+        onClick={() => setShowGroupModal(false)}
+      >✕</button>
+      <h2 className="text-lg font-bold mb-4">Create Group</h2>
+      <input
+        className="w-full border rounded px-3 py-2 mb-3"
+        placeholder="Group Name"
+        value={groupName}
+        onChange={e => setGroupName(e.target.value)}
+      />
+      <div className="mb-3 max-h-40 overflow-y-auto">
+        {contacts.map(user => (
+          <label key={user.id} className="flex items-center gap-2 mb-1">
+            <input
+              type="checkbox"
+              checked={selectedUsers.includes(user.id)}
+              onChange={() =>
+                setSelectedUsers(prev =>
+                  prev.includes(user.id)
+                    ? prev.filter(id => id !== user.id)
+                    : [...prev, user.id]
+                )
+              }
+            />
+            {user.name}
+          </label>
+        ))}
+      </div>
+      <button
+        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        onClick={async () => {
+          if (!groupName.trim() || selectedUsers.length < 1) {
+            toast.error("Enter group name and select at least one user");
+            return;
+          }
+          try {
+            const res = await fetch("http://localhost:8000/create_group", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: groupName,
+                members: [userid, ...selectedUsers],
+              }),
+            });
+            if (res.ok) {
+              toast.success("Group created!");
+              setShowGroupModal(false);
+              setGroupName("");
+              setSelectedUsers([]);
+              // Refresh groups
+              const groupRes = await fetch(`http://localhost:8000/get_user_groups/${userid}`);
+              setGroups(await groupRes.json());
+            } else {
+              toast.error("Failed to create group");
+            }
+          } catch (err) {
+            toast.error("Error creating group");
+          }
+        }}
+      >
+        Create Group
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
