@@ -7,7 +7,6 @@ import { DateRangePicker } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { format, isWithinInterval, parseISO } from 'date-fns';
-
 const Leaveapproval = () => {
   const [refresh, setRefresh] = useState(false);
   const [leaveData, setLeaveData] = useState([]);

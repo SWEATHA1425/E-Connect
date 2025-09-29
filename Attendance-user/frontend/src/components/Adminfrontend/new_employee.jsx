@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { ipadr, LS } from "../../Utils/Resuse";
+import { ipadr } from "../../Utils/Resuse";
+import { LS } from "../../Utils/Resuse";
 
 const AddUser = () => {
   const [formData, setFormData] = useState({

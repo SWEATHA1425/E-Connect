@@ -4,7 +4,7 @@ const Authcontext = createContext("");
 export const Authdata = () => useContext(Authcontext);
 export function Authprovider() {
   const [Statedata, SetStatedata] = useState({
-    id: "",
+    userid: "",
     isauth: false,
     name: "",
   });

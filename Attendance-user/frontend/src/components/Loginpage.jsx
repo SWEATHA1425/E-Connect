@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Authdata } from "../Utils/Authprovider";
 import { Apisignin } from "../Api/Loginauth";
 import { jwtDecode } from "jwt-decode";
-import { LS, ipadr } from "../Utils/Resuse";
+import { LS } from "../Utils/Resuse";
 import { Link } from "react-router-dom";
 
 export default function LoginPage() {
@@ -21,35 +21,63 @@ export default function LoginPage() {
     
     
     try {
-      console.log("Attempting to reach:", `${ipadr}/ip-info`);
-      
-      const response = await fetch(`${ipadr}/ip-info`, {
-        method: "GET",
-        redirect: "follow",
-        // Adding these options might help with certificate issues
-        mode: "cors",
-        headers: {
-          "Content-Type": "application/json"
-        }
+      console.log("Starting Google login process...");
+
+      // Decode Google JWT
+      let userDecode = jwtDecode(credentialResponse.credential);
+      console.log("Google credentials decoded:", {
+        name: userDecode.name,
+        email: userDecode.email
       });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+
+      // Call backend
+      const res = await Apisignin({
+        client_name: userDecode.name,
+        email: userDecode.email,
+      });
+      console.log("API signin response:", res);
+
+      // Store user data in localStorage
+      localStorage.setItem("userid", res._id || res.id);
+      localStorage.setItem("name", res.name);
+      localStorage.setItem("email", res.email);
+      localStorage.setItem("isloggedin", res.isloggedin.toString());
+      localStorage.setItem("isadmin", res.isadmin.toString());
+      localStorage.setItem("access_token", res.access_token);
+
+      // Also save using LS utility
+      LS.save("userid", res._id || res.id);
+      LS.save("name", res.name);
+      LS.save("email", res.email);
+      LS.save("access_token", res.access_token);
+      LS.save("Auth", true);
+
+      // Navigation based on user role
+      const loggedIn = res.isloggedin;
+      const isAdmin = res.isadmin;
+
+      console.log("Navigation check:", { loggedIn, isAdmin });
+
+      if (loggedIn && isAdmin) {
+        console.log("Navigating to admin dashboard");
+        navigate("admin/time", {
+          state: { userid: res._id || res.id, token: res.access_token },
+        });
+      } else if (loggedIn && !isAdmin) {
+        console.log("Navigating to user dashboard");
+        navigate("User/Clockin_int", {
+          state: { userid: res._id || res.id, token: res.access_token },
+        });
+      } else {
+        toast.error("Login failed. Please contact administrator.");
       }
+
+      // Show success message
+      toast.success("Login successful!");
       
-      const result = await response.json();
-      console.log("Current IP Information:", {
-        publicIp: result.public_ip,
-        localIp: result.local_ip
-      });
-      
-      return {
-        publicIp: result.public_ip,
-        localIp: result.local_ip
-      };
-    } catch (error) {
-      console.error("Error fetching IP info:", error);
-      return null;
+    } catch (err) {
+      console.error("Login error:", err);
+      toast.error("An error occurred during login. Please try again.");
     }
   };
   const validateIp = (userIp, currentIps) => {
@@ -184,22 +212,21 @@ const handleGoogleLogin = async (credentialResponse) => {
               Sign in with Google
             </h2>
             <div className="flex justify-center">
-              {/* <GoogleOAuthProvider clientId="616660088488-17nrc3n7j9ibd7f29680qorv56442nd8.apps.googleusercontent.com"> */}
-              <GoogleOAuthProvider clientId="152946581457-15hbl22a667fe0le1mkt5e6d14kisrtd.apps.googleusercontent.com">
-                <GoogleLogin onSuccess={handleGoogleLogin} useOneTap data-testid="google-login-btn"/>
+              <GoogleOAuthProvider clientId="616660088488-17nrc3n7j9ibd7f29680qorv56442nd8.apps.googleusercontent.com">
+                <GoogleLogin onSuccess={handleGoogleLogin} />
               </GoogleOAuthProvider>
             </div>
           </div>
 
           {/* OR Divider */}
-          {/* <div className="flex items-center my-6 w-full">
+          <div className="flex items-center my-6 w-full">
             <div className="flex-grow border-t border-gray-300"></div>
             <span className="mx-3 text-gray-500 text-sm">OR</span>
             <div className="flex-grow border-t border-gray-300"></div>
-          </div> */}
+          </div>
 
           {/* Links to normal login/signup */}
-          {/* <div className="text-center space-y-2">
+          <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               Prefer Email/Password?{" "}
               <Link to="/signin" className="text-blue-500 font-medium hover:underline">
@@ -212,7 +239,7 @@ const handleGoogleLogin = async (credentialResponse) => {
                 Create Account
               </Link>
             </p>
-          </div> */}
+          </div>
         </div>
       </div>
 

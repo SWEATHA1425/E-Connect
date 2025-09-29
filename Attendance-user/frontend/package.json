@@ -18,6 +18,7 @@
     "axios": "^1.7.9",
     "caniuse-lite": "^1.0.30001731",
     "date-fns": "^4.1.0",
+    "emoji-picker-react": "^4.13.3",
     "jwt-decode": "^4.0.0",
     "localstorage-encrypt": "^1.1.0",
     "lucide-react": "^0.474.0",
@@ -28,7 +29,7 @@
     "react-calendar": "^5.1.0",
     "react-confirm-alert": "^3.0.6",
     "react-date-range": "^2.0.1",
-    "react-datepicker": "^6.1.0",
+    "react-datepicker": "^6.9.0",
     "react-datetime": "^3.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",
@@ -42,6 +43,7 @@
     "react-toastify": "^10.0.4",
     "react-tooltip": "^5.19.0",
     "recharts": "^3.1.2",
+    "tailwind-scrollbar": "^3.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -515,7 +515,7 @@ const TaskPage = () => {
         )}
 
         <div className="flex justify-between items-start mb-2">
-          <h4 className="font-semibold text-gray-800 text-sm leading-tight pr-2">{task.task}</h4>
+          <h4 className="font-semibold text-gray-800 text-sm leading-tight pr-2 break-words whitespace-normal max-w-full" style={{wordBreak: 'break-word', overflowWrap: 'break-word'}}>{task.task}</h4>
           <div className="flex flex-col gap-1 items-end">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
               task.status === 'todo' ? 'bg-red-200 text-red-700' :
@@ -629,7 +629,7 @@ const TaskPage = () => {
         </div>
 
         {/* Add Task Form */}
-        {!isPastDate(date) && (
+        {/* {!isPastDate(date) && (
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-4">
               <input
@@ -656,7 +656,7 @@ const TaskPage = () => {
             </div>
             {errorMessage && <p className="text-red-500 text-sm mt-3">{errorMessage}</p>}
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Kanban Board */}
