@@ -12,49 +12,101 @@ import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
 
 // Note Component
 const Note = ({ empdata, handleDelete, handleEdit }) => (
-  <div className={
-    `${empdata.bg ? empdata.bg : 'bg-green-300'} p-6 pt-12 w-[320px] min-h-[250px] relative flex flex-col rounded-lg shadow-xl border-l-[10px] border-grey-500 transition-all transform animate-fade-in ` +
-    'hover:scale-[1.03] hover:shadow-2xl hover:shadow-green-400/40 hover:z-20 hover:-translate-y-2 cursor-pointer'
-  }>
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-gray-400 opacity-30 rounded-b-lg"></div>
-    <p className="text-gray-900 font-bold text-xl mb-3 text-center">📝 Task Details</p>
-    <ul className="text-gray-800 text-base space-y-2">
-      <li><span className="font-semibold">Task:</span>  <p className="break-words whitespace-normal">{empdata.task}</p></li>
-      <li><span className="font-semibold">Assigned Date:</span> {empdata.date}</li>
-  <li><span className="font-semibold">Due Date:</span> {empdata.due_date ? String(empdata.due_date).slice(0, 10) : ''}</li>
-      <li>
-        <span className="font-semibold">Status:</span>
-        <span className={`ml-2 px-3 py-1 text-xs font-bold rounded-full shadow-md ${empdata.status === 'Completed' ? 'bg-green-500 text-white' : empdata.status === 'Pending' ? 'bg-yellow-500 text-black' : 'bg-red-500 text-white'}`}>{empdata.status}</span>
-      </li>
-      <li>
-        <span className="font-semibold">Assigned By:</span> {empdata.assigned_by}
-      </li>
-      <li>
-        <span className="font-semibold">Priority:</span>
-        <span className={`ml-2 px-3 py-1 text-xs font-bold rounded-full shadow-md ${empdata.priority === "High" ? "bg-red-500 text-white" : empdata.priority === "Medium" ? "bg-yellow-400 text-black" : "bg-green-400 text-black"}`}>{empdata.priority}</span>
-      </li>
-      {empdata.subtasks && empdata.subtasks.map((subtask, idx) => {
-        const text = subtask.text ?? subtask.title ?? "";
-        const completed = subtask.completed || false;
-        const subtaskKey = `subtask-${empdata._id || empdata.id || empdata.taskid}-${idx}`;
-        return (
-          <div key={subtaskKey} className="flex items-center text-sm">
-            <span className={`mr-2 ${completed ? 'text-green-500' : 'text-gray-400'}`}>{completed ? '✓' : '○'}</span>
-            <span className={completed ? 'line-through text-gray-500' : '' + ' break-words whitespace-normal'} style={{wordBreak: 'break-word', overflowWrap: 'break-word', maxWidth: '220px'}}>{text}</span>
-          </div>
-        );
-      })}
-    </ul>
-    <div className="absolute top-2 right-4 flex gap-2">
-      <button className="bg-green-600 text-white p-2 rounded-full shadow-lg transition-transform transform hover:scale-110 hover:-rotate-6 hover:shadow-green-500" onClick={() => handleEdit(empdata.taskid || empdata._id || empdata.id)}>
+  <div
+    className={`
+      relative p-5 w-[300px] min-h-[220px] flex flex-col justify-between rounded-xl 
+      shadow-md border border-blue-200 bg-blue-50 transition-all duration-300 transform 
+      hover:scale-[1.03] hover:shadow-2xl hover:shadow-blue-400/30 hover:z-20 hover:-translate-y-2 
+      cursor-pointer
+    `}
+  >
+    {/* Status indicator line */}
+    <div
+      className={`absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-1 rounded-full ${
+        empdata.status === 'Completed'
+          ? 'bg-green-500'
+          : empdata.status === 'In Progress'
+          ? 'bg-blue-500'
+          : 'bg-red-500'
+      }`}
+    />
+
+    <div className="mt-2">
+      <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center justify-between">
+        📝 {empdata.task?.length > 40 ? empdata.task.slice(0, 40) + "..." : empdata.task}
+      </h3>
+
+      <ul className="text-sm text-gray-700 space-y-1">
+        <li><span className="font-semibold">Assigned:</span> {empdata.date}</li>
+        <li><span className="font-semibold">Due:</span> {empdata.due_date ? String(empdata.due_date).slice(0, 10) : "-"}</li>
+        <li>
+          <span className="font-semibold">Status:</span>
+          <span
+            className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+              empdata.status === 'Completed'
+                ? 'bg-green-100 text-green-700'
+                : empdata.status === 'In Progress'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {empdata.status}
+          </span>
+        </li>
+        <li><span className="font-semibold">Assigned By:</span> {empdata.assigned_by}</li>
+        <li>
+          <span className="font-semibold">Priority:</span>
+          <span
+            className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 border ${
+              empdata.priority === 'High'
+                ? 'border-red-500'
+                : empdata.priority === 'Medium'
+                ? 'border-blue-500'
+                : 'border-green-500'
+            }`}
+          >
+            {empdata.priority}
+          </span>
+        </li>
+      </ul>
+
+      {empdata.subtasks?.length > 0 && (
+        <div className="mt-3 border-t pt-2">
+          <p className="font-medium text-gray-800 mb-1 text-sm">Subtasks:</p>
+          <ul className="text-xs text-gray-600 space-y-1 max-h-[70px] overflow-y-auto">
+            {empdata.subtasks.map((sub, i) => (
+              <li key={i} className="flex items-center">
+                <span className={`mr-2 ${sub.completed ? 'text-green-500' : 'text-gray-400'}`}>
+                  {sub.completed ? '✓' : '○'}
+                </span>
+                <span className={`${sub.completed ? 'line-through text-gray-500' : ''}`}>
+                  {sub.title || sub.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+
+    <div className="flex justify-end gap-3 mt-4">
+      <button
+        onClick={() => handleEdit(empdata.taskid || empdata._id || empdata.id)}
+        className="p-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 transition"
+      >
         <AiOutlineEdit className="text-xl" />
       </button>
-      <button className="bg-red-600 text-white p-2 rounded-full shadow-lg transition-transform transform hover:scale-110 hover:-rotate-6 hover:shadow-red-500" onClick={() => handleDelete(empdata.taskid || empdata._id || empdata.id)}>
+      <button
+        onClick={() => handleDelete(empdata.taskid || empdata._id || empdata.id)}
+        className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition"
+      >
         <AiOutlineDelete className="text-xl" />
       </button>
     </div>
   </div>
 );
+
+
 
 const AssignTask = ({ assignType }) => {
   // assignType: 'manager-to-employee' or 'hr-to-manager'
@@ -66,7 +118,7 @@ const AssignTask = ({ assignType }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
+  const [itemsPerPage] = useState(8);
   const [modalOpen, setModalOpen] = useState(false);
   const [editModel, SetEditmodel] = useState([]);
   const [modeldata, setModelData] = useState({ task: [""], userid: "", date: "", due_date: "", priority: "Medium", subtasks: [] });
@@ -75,6 +127,9 @@ const AssignTask = ({ assignType }) => {
   const [ValueSelected, SetValueSelected] = useState('');
   const [dateRange, setDateRange] = useState([{ startDate: null, endDate: null, key: "selection" }]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [itemsToShow, setItemsToShow] = useState(8); 
+  const [searchTerm, setSearchTerm] = useState('');
+
 
   // Determine role and API endpoints
   const isManager = assignType === 'manager-to-employee';
@@ -104,6 +159,36 @@ const AssignTask = ({ assignType }) => {
     });
     setFilteredData(filtered);
   }, [ValueSelected, employeeData, options]);
+
+const sortedData = [...filteredData].reverse(); // newest first
+
+// Apply search filter
+const searchedData = sortedData.filter(task => {
+  let title = task.task;
+
+  // If task.task is an array, take the first element
+  if (Array.isArray(title)) title = title[0];
+
+  // Ensure it's a string
+  if (typeof title !== 'string') return false;
+
+  return title.toLowerCase().includes(searchTerm.toLowerCase());
+});
+
+
+// Slice for pagination / load more
+const currentItems = searchedData.slice(0, itemsToShow);
+
+const handlePageChange = (direction) => {
+  if (direction === "prev" && currentPage > 1) {
+    setCurrentPage(currentPage - 1);
+  } else if (direction === "next" && currentPage < totalPages) {
+    setCurrentPage(currentPage + 1);
+  }
+};
+
+
+
 
   // Fetch options for dropdown (employees for manager, managers for HR)
   useEffect(() => {
@@ -253,36 +338,6 @@ const AssignTask = ({ assignType }) => {
     }
   };
 
-  // Edit Task Submit
-//   const handleoneditSubmit = async () => {
-//     try {
-//       if (!editModel || editModel.length === 0) return toast.error("No task data to update");
-//       const item = editModel[0];
-//       const updatedetails = {
-//         updated_task: Array.isArray(item.task) ? item.task[0] : item.task,
-//         userid: item.userid,
-//         status: item.status,
-//       due_date: formatDate(item.due_date),
-//         priority: item.priority || "Medium",
-//         taskid: item._id,
-//         subtasks: normalizeSubtasks(item.subtasks || [])
-//       };
-//       const response = await axios({ method: 'put', url: `${ipadr}/edit_task`, data: updatedetails, headers: { 'Content-Type': 'application/json' } });
-//       if (response.status === 200) {
-//         toast.success("Task edited successfully");
-//         setModalOpen(false);
-//         SetEditmodel([]);
-//         // Also clear add modal fields to prevent pre-fill
-//         setModelData({ task: [""], userid: "", date: "", due_date: "", priority: "Medium", subtasks: [] });
-//         setSelectedUsers([]);
-//         fetchTasks();
-//       } else {
-//         toast.error("Error while editing the task");
-//       }
-//     } catch (error) {
-//       toast.error("Error editing task");
-//     }
-//   };
 const handleoneditSubmit = async () => {
   try {
     if (!editModel || editModel.length === 0) return toast.error("No task data to update");
@@ -349,19 +404,29 @@ const handleoneditSubmit = async () => {
         <button className="bg-blue-500 hover:bg-blue-400 hover:text-slate-900 text-white text-sm font-inter px-4 py-2 rounded-full shadow-lg" onClick={() => setModalOpen(true)}>Add Task</button>
         <div className="flex items-center space-x-3">
           <select className="w-48 border border-gray-400 rounded-lg px-4 py-2 text-gray-700 bg-white shadow-md outline-none focus:ring-2 focus:ring-blue-500 transition" value={ValueSelected} onChange={e => SetValueSelected(e.target.value)}>
-            <option value="">--select {isManager ? 'Employee' : 'Manager'}--</option>
-            {options.map(item => (
-              <option key={item.id || item.userid} value={item.userid}>{item.name}</option>
-            ))}
-          </select>
+            <option value="" disabled hidden>--select {isManager ? 'Employee' : 'Manager'}--</option>
+             {options.map(item => (
+               <option key={item.id || item.userid} value={item.userid}>{item.name}</option>
+             ))}
+           </select>
+
+            <input
+    type="text"
+    placeholder="Search task by title..."
+    value={searchTerm}
+    onChange={e => setSearchTerm(e.target.value)}
+    className="px-4 py-2 border border-gray-400 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+  />
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => { setFilteredData(employeeData); SetValueSelected(''); }} className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center gap-2"><RotateCw className="w-4 h-4" />Reset</button>
+          <button onClick={() => { setFilteredData(employeeData); SetValueSelected(''); setSearchTerm(''); }} className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center gap-2"><RotateCw className="w-4 h-4" />Reset</button>
         </div>
       </header>
       <div className="notes border-t-2 border-gray-200 mt-5 pt-5 container mx-auto grid md:grid-cols-4 gap-10 ">
-        {filteredData && filteredData.length > 0 ? (
-          filteredData.map((item, i) => (
+        
+        {currentItems && currentItems.length > 0 ? (
+  currentItems.map((item, i) => (
+
             <Note handleDelete={() => handleDelete(item._id || item.id || item.taskid)} handleEdit={() => handleEdit(item._id || item.id || item.taskid)} key={item._id || item.id || item.taskid || i} empdata={item} />
           ))
         ) : (
@@ -370,6 +435,27 @@ const handleoneditSubmit = async () => {
           </div>
         )}
       </div>
+    {(itemsToShow < sortedData.length || itemsToShow > 8) && (
+  <div className="flex justify-center gap-4 mt-8">
+    {itemsToShow < sortedData.length && (
+      <button
+        onClick={() => setItemsToShow(prev => prev + 8)} // load 8 more tasks
+        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+      >
+        Load More
+      </button>
+    )}
+    {itemsToShow > 8 && (
+      <button
+        onClick={() => setItemsToShow(8)} // reset to initial view
+        className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+      >
+        Show Less
+      </button>
+    )}
+  </div>
+)}
+
       {modalOpen && createPortal(
         <Modal closeModal={() => { setModalOpen(false); setModelData({ task: [""], userid: "", date: "", due_date: "", priority: "Medium", subtasks: [] }); setSelectedUsers([]); }} onSubmit={handleonSubmit} onCancel={() => { setModalOpen(false); setModelData({ task: [""], userid: "", date: "", due_date: "", priority: "Medium", subtasks: [] }); setSelectedUsers([]); }}>
           <div className="max-h-[50vh] overflow-y-auto">
@@ -387,12 +473,12 @@ const handleoneditSubmit = async () => {
             <div className="mt-4">
               <label className="block text-lg font-semibold text-gray-700 mb-2">Priority</label>
               <select name="priority" value={modeldata.priority || ""} onChange={e => setModelData({ ...modeldata, priority: e.target.value })} className="w-full border border-gray-300 rounded-lg px-4 py-3 shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
-                <option value="">Select Priority</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
+                <option value="" disabled hidden>Select Priority</option>
+                 <option value="High">High</option>
+                 <option value="Medium">Medium</option>
+                 <option value="Low">Low</option>
+               </select>
+             </div>
             <div className="mt-4">
               <label className="block text-lg font-semibold text-gray-700 mb-2">Subtasks</label>
               {modeldata.subtasks?.map((subtask, idx) => (
@@ -406,7 +492,7 @@ const handleoneditSubmit = async () => {
             <div className="mt-4">
               <label className="block text-lg font-semibold text-gray-700 mb-2">Select {isManager ? 'Employee(s)' : 'Manager(s)'}</label>
               <div className="w-full max-w-sm bg-white border border-gray-300 rounded-lg px-4 py-2 shadow-sm">
-                <Multiselect options={options} selectedValues={selectedUsers} onSelect={setSelectedUsers} onRemove={setSelectedUsers} displayValue="name" className="text-gray-700" />
+                <Multiselect options={options} selectedValues={selectedUsers} onSelect={setSelectedUsers} onRemove={setSelectedUsers} displayValue="name" className="text-gray-700" avoidHighlightFirstOption={true} />
               </div>
             </div>
           </div>
@@ -436,8 +522,8 @@ const handleoneditSubmit = async () => {
                 </div>
               <div>
                 <label className="block mb-1 font-semibold">Status</label>
-                <select name="status" value={item.status || "Not Started"} onChange={e => { const updated = [...editModel]; updated[index].status = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2">
-                  <option value="Not Started">Not Started</option>
+                <select name="status" value={item.status || "To Do"} onChange={e => { const updated = [...editModel]; updated[index].status = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2">
+                  <option value="">To Do</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
                 </select>
@@ -445,11 +531,12 @@ const handleoneditSubmit = async () => {
               <div>
                 <label className="block mb-1 font-semibold">Priority</label>
                 <select name="priority" value={item.priority || "Medium"} onChange={e => { const updated = [...editModel]; updated[index].priority = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2">
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
+                  <option value="" disabled hidden>Select Priority</option>
+                   <option value="Low">Low</option>
+                   <option value="Medium">Medium</option>
+                   <option value="High">High</option>
+                 </select>
+               </div>
               <div>
                 <label className="block mb-1 font-semibold">Subtasks</label>
                 {(item.subtasks && Array.isArray(item.subtasks) && item.subtasks.length > 0) ? item.subtasks.map((subtask, sidx) => {
