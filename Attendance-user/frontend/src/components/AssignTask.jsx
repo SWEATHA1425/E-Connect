@@ -10,14 +10,53 @@ import { toast } from "react-toastify";
 import { parseISO, isWithinInterval } from 'date-fns';
 import { AiOutlineDelete, AiOutlineEdit } from 'react-icons/ai';
 
+// ConfirmModal: a self-contained modal (does not use the existing Modal component)
+function ConfirmModal({ open, title, message, onConfirm, onClose, confirmLabel = 'Delete', cancelLabel = 'Cancel' }) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose?.();
+      if (e.key === 'Enter') onConfirm?.();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose, onConfirm]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="p-2 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+              <AiOutlineDelete className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <p className="text-sm text-gray-600 mt-1">Are you sure you want to delete this task?</p>
+              {message && <p className="text-xs text-gray-500 mt-2 break-words">{message}</p>}
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <button onClick={onClose} className="px-3 py-1 rounded-md border border-gray-300 bg-white text-gray-700">{cancelLabel}</button>
+            <button autoFocus onClick={onConfirm} className="px-3 py-1 rounded-md bg-red-600 text-white hover:bg-red-700 shadow">{confirmLabel}</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // Note Component
 const Note = ({ empdata, handleDelete, handleEdit }) => (
   <div
     className={`
-      relative p-5 w-[300px] min-h-[220px] flex flex-col justify-between rounded-xl 
+      relative p-4 w-full flex flex-col justify-between rounded-xl 
       shadow-md border border-blue-200 bg-blue-50 transition-all duration-300 transform 
-      hover:scale-[1.03] hover:shadow-2xl hover:shadow-blue-400/30 hover:z-20 hover:-translate-y-2 
-      cursor-pointer
+      hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-300/25 hover:z-20 cursor-pointer
     `}
   >
     {/* Status indicator line */}
@@ -73,7 +112,7 @@ const Note = ({ empdata, handleDelete, handleEdit }) => (
       {empdata.subtasks?.length > 0 && (
         <div className="mt-3 border-t pt-2">
           <p className="font-medium text-gray-800 mb-1 text-sm">Subtasks:</p>
-          <ul className="text-xs text-gray-600 space-y-1 max-h-[70px] overflow-y-auto">
+          <ul className="text-xs text-gray-600 space-y-1 max-h-[70px] overflow-y-auto assigntask-thin-scrollbar">
             {empdata.subtasks.map((sub, i) => (
               <li key={i} className="flex items-center">
                 <span className={`mr-2 ${sub.completed ? 'text-green-500' : 'text-gray-400'}`}>
@@ -109,7 +148,24 @@ const Note = ({ empdata, handleDelete, handleEdit }) => (
 
 
 const AssignTask = ({ assignType }) => {
-  // assignType: 'manager-to-employee' or 'hr-to-manager'
+  // small client-side injection for thinner scrollbars (WebKit + Firefox)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.getElementById('assigntask-scrollbar-style')) return;
+    const style = document.createElement('style');
+    style.id = 'assigntask-scrollbar-style';
+    style.innerHTML = `
+      /* Firefox */
+      .assigntask-thin-scrollbar { scrollbar-width: thin; }
+      /* WebKit browsers */
+      .assigntask-thin-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+      .assigntask-thin-scrollbar::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.35); border-radius: 9999px; }
+      .assigntask-thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
   const navigate = useNavigate();
   const params = useParams();
   const [searchParams] = useSearchParams();
@@ -395,45 +451,43 @@ const handleoneditSubmit = async () => {
   if (error) return <div className="flex justify-center items-center h-64 text-xl text-red-500">Error: {error}</div>;
 
   return (
-    <div className="mr-8 p-10 bg-white min-h-96 lg:min-h-[90vh] w-full shadow-black rounded-xl justify-center items-center relative jsonback ml-10 rounded-md h-screen overflow-y-scroll scrollbar-hide">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-5xl font-semibold font-inter pb-2 text-transparent bg-gradient-to-r from-zinc-600 to-zinc-950 bg-clip-text border-b-2">Task Assign</h1>
-        <button onClick={() => navigate(isManager ? '/User/manager-employee' : '/User/hr-manager')} className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">← Back to Dashboard</button>
+    <div className="mr-8 p-4 bg-white min-h-screen w-full shadow-black rounded-xl relative jsonback ml-10 rounded-md h-screen flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between mb-1 px-2 py-2">
+        <h1 className="text-2xl md:text-3xl font-semibold">Task Assign</h1>
+        <button onClick={() => navigate(isManager ? '/User/manager-employee' : '/User/hr-manager')} className="px-3 py-1 bg-blue-700 text-white rounded-md text-sm">← Back To Dashboard</button>
       </div>
-      <header className="px-5 py-4 border-b border-gray-200 flex justify-between items-center">
-        <button className="bg-blue-500 hover:bg-blue-400 hover:text-slate-900 text-white text-sm font-inter px-4 py-2 rounded-full shadow-lg" onClick={() => setModalOpen(true)}>Add Task</button>
-        <div className="flex items-center space-x-3">
-          <select className="w-48 border border-gray-400 rounded-lg px-4 py-2 text-gray-700 bg-white shadow-md outline-none focus:ring-2 focus:ring-blue-500 transition" value={ValueSelected} onChange={e => SetValueSelected(e.target.value)}>
-            <option value="" disabled hidden>--select {isManager ? 'Employee' : 'Manager'}--</option>
-             {options.map(item => (
-               <option key={item.id || item.userid} value={item.userid}>{item.name}</option>
-             ))}
-           </select>
-
-            <input
-    type="text"
-    placeholder="Search task by title..."
-    value={searchTerm}
-    onChange={e => setSearchTerm(e.target.value)}
-    className="px-4 py-2 border border-gray-400 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-  />
-        </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => { setFilteredData(employeeData); SetValueSelected(''); setSearchTerm(''); }} className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center gap-2"><RotateCw className="w-4 h-4" />Reset</button>
+      <header className="sticky top-0 z-40 bg-white border-b border-gray-200 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <button className="bg-blue-500 text-white text-sm px-3 py-1 rounded-md" onClick={() => setModalOpen(true)}>Add Task</button>
+          </div>
+          <div className="flex-1 flex items-center justify-center space-x-3">
+            <select className="w-40 p-1 text-sm border border-gray-300 rounded-md" value={ValueSelected} onChange={e => SetValueSelected(e.target.value)}>
+              <option value="" disabled hidden>--select {isManager ? 'Employee' : 'Manager'}--</option>
+              {options.map(item => (
+                <option key={item.id || item.userid} value={item.userid}>{item.name}</option>
+              ))}
+            </select>
+            <input type="text" placeholder="Search task by title..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="px-3 py-1 text-sm border border-gray-300 rounded-md" />
+          </div>
+          <div className="flex items-center">
+            <button onClick={() => { setFilteredData(employeeData); SetValueSelected(''); setSearchTerm(''); }} className="px-3 py-1 bg-gray-500 text-white rounded-md text-sm"><RotateCw className="w-4 h-4 inline-block" /> Reset</button>
+          </div>
         </div>
       </header>
-      <div className="notes border-t-2 border-gray-200 mt-5 pt-5 container mx-auto grid md:grid-cols-4 gap-10 ">
-        
-        {currentItems && currentItems.length > 0 ? (
-  currentItems.map((item, i) => (
 
-            <Note handleDelete={() => handleDelete(item._id || item.id || item.taskid)} handleEdit={() => handleEdit(item._id || item.id || item.taskid)} key={item._id || item.id || item.taskid || i} empdata={item} />
-          ))
-        ) : (
-          <div className="col-span-4 text-center py-8">
-            <p className="text-gray-500 text-lg">No tasks found. Please add a new task.</p>
-          </div>
-        )}
+      <div className="notes flex-1 overflow-auto overflow-x-hidden p-4 border-t border-gray-100 assigntask-thin-scrollbar">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
+          {currentItems && currentItems.length > 0 ? (
+            currentItems.map((item, i) => (
+              <Note handleDelete={() => setDeleteTarget({ id: item._id || item.id || item.taskid, title: Array.isArray(item.task) ? item.task[0] : item.task })} handleEdit={() => handleEdit(item._id || item.id || item.taskid)} key={item._id || item.id || item.taskid || i} empdata={item} />
+            ))
+          ) : (
+            <div className="col-span-4 text-center py-8">
+              <p className="text-gray-500 text-lg">No tasks found. Please add a new task.</p>
+            </div>
+          )}
+        </div>
       </div>
     {(itemsToShow < sortedData.length || itemsToShow > 8) && (
   <div className="flex justify-center gap-4 mt-8">
@@ -556,6 +610,16 @@ const handleoneditSubmit = async () => {
             );
           })}
         </Modal>, document.body)}
+      {/* Use new ConfirmModal (independent from existing Modal) */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete task"
+        message={deleteTarget?.title}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { handleDelete(deleteTarget?.id); setDeleteTarget(null); }}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
     </div>
   );
 };
