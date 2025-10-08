@@ -188,6 +188,7 @@ const mapStatusToColumn = (status) => {
         files: foundTask.files || [],
         assignedBy: foundTask.assigned_by || foundTask.assignedBy || "Manager",
         priority: foundTask.priority || "medium",
+        verified: foundTask.verified || false,
         createdDate: foundTask.created_date || foundTask.date
       };
       setTask(formattedTask);
@@ -204,6 +205,7 @@ const mapStatusToColumn = (status) => {
 
   const addComment = useCallback(async () => {
     if (!newComment.trim() || !task) return;
+    if (task.verified) return toast.error('This task is verified and cannot be commented on.');
 
     const newEntry = {
       id: Date.now(),
@@ -244,6 +246,7 @@ const mapStatusToColumn = (status) => {
 
   const addSubtask = useCallback(async () => {
     if (!newSubtask.trim() || !task) return;
+    if (task.verified) return toast.error('This task is verified and cannot be edited.');
 
     const updatedTask = {
       ...task,
@@ -282,6 +285,7 @@ const mapStatusToColumn = (status) => {
 
   const toggleSubtask = useCallback(async (subtaskId) => {
     if (!task) return;
+    if (task.verified) return toast.error('This task is verified and cannot be edited.');
 
     const updatedTask = {
       ...task,
@@ -319,6 +323,7 @@ const mapStatusToColumn = (status) => {
   const handleFileUpload = useCallback(async (event) => {
     const file = event.target.files[0];
     if (!file || !task) return;
+    if (task.verified) return toast.error('This task is verified and cannot accept new files.');
 
     try {
       const formData = new FormData();
@@ -352,6 +357,12 @@ const mapStatusToColumn = (status) => {
 
   const updateTaskStatus = async (newStatus) => {
     if (!task) return;
+
+    // Prevent changing status of verified tasks
+    if (task.verified) {
+      toast.error('This task is verified and cannot be moved. Unverify first to change status.');
+      return;
+    }
 
     const mapColumnToStatus = (column) => {
       switch (column) {
@@ -442,6 +453,13 @@ const mapStatusToColumn = (status) => {
       Back to Tasks
     </button>
   </div>
+  {task.verified && (
+    <div className="flex items-center gap-2 mb-2">
+      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-700 text-white font-semibold text-sm">
+        <FaCheckCircle /> Verified
+      </span>
+    </div>
+  )}
         {/* Due Date Alert */}
         {dueDateStatus && (
           <div className={`flex items-center gap-2 mb-4 px-4 py-2 rounded border text-s ${dueDateStatus.className}`}>
@@ -477,8 +495,9 @@ const mapStatusToColumn = (status) => {
           <div className="flex items-center gap-1">
             <span className="text-gray-600">Status:</span>
             <select
-              value={task.status}
-              onChange={(e) => updateTaskStatus(e.target.value)}
+                    value={task.status}
+                    onChange={(e) => updateTaskStatus(e.target.value)}
+                    disabled={task.verified}
               className="px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="todo">To Do</option>
@@ -546,11 +565,12 @@ const mapStatusToColumn = (status) => {
               addSubtask();
             }
           }}
+          disabled={task.verified}
         />
         <button
           onClick={addSubtask}
-          disabled={!newSubtask.trim()}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!newSubtask.trim() || task.verified}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${task.verified ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
         >
           <FaPlus />
           Add Subtask
@@ -606,7 +626,8 @@ const mapStatusToColumn = (status) => {
         type="file"
         ref={fileInputRef}
         onChange={handleFileUpload}
-        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+        disabled={task.verified}
+        className={`w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${task.verified ? 'bg-gray-50 cursor-not-allowed' : ''}`}
       />
     </div>
 
@@ -646,6 +667,7 @@ const mapStatusToColumn = (status) => {
         onChange={(e) => setNewComment(e.target.value)}
         placeholder="Write a comment..."
         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none h-24"
+        disabled={task.verified}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -655,8 +677,8 @@ const mapStatusToColumn = (status) => {
       />
       <button
         onClick={addComment}
-        disabled={!newComment.trim()}
-        className="w-full mt-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!newComment.trim() || task.verified}
+        className={`w-full mt-2 px-4 py-3 rounded-lg transition-colors ${task.verified ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700'}`}
       >
         Send
       </button>

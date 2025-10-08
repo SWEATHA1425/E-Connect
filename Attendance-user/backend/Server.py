@@ -2415,13 +2415,16 @@ def edit_task(request: Taskedit):
             priority=request.priority,
             subtasks=request.subtasks,
             comments=request.comments,
-            files=request.files
+            files=request.files,
+            verified=request.verified 
         )
         
         if result == "Task not found":
             raise HTTPException(status_code=404, detail="Task not found")
         elif result == "No fields to update":
             raise HTTPException(status_code=400, detail="No fields to update")
+        elif result == "Cannot demote verified task":
+            raise HTTPException(status_code=403, detail="Cannot change status of a verified task")
         
         return {"message": result}
         

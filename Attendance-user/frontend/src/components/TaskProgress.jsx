@@ -205,6 +205,11 @@ const TaskProgress = () => {
     const allTasks = employeeTasks.flatMap(emp => emp.tasks);
     const task = allTasks.find(t => t.id === taskId);
     if (!task) return;
+    // Prevent status changes for verified tasks
+    if (task.verified) {
+      toast.error('This task is verified and cannot be moved. Unverify first to change status.');
+      return;
+    }
     try {
       const response = await fetch(`${ipadr}/edit_task`, {
         method: "PUT",
@@ -356,10 +361,14 @@ const TaskProgress = () => {
 
   // Navigation logic based on role
   const openTaskDetail = (task) => {
+    // Prevent opening edit/detail if task is verified and the user would attempt edits
+    if (task.verified) {
+      // allow viewing details but block edit actions within those pages; still navigate to show the badge
+    }
     if (LS.get("position") === "Manager") {
-      navigate(`/User/manager-task-detail/${task.taskid}`);
+      navigate(`/User/manager-task-detail/${task.taskid}`, { state: { task } });
     } else {
-       navigate(`/User/hr-task-detail/${task.taskid}`);
+       navigate(`/User/hr-task-detail/${task.taskid}`, { state: { task } });
     }
   };
 
@@ -411,7 +420,7 @@ const TaskProgress = () => {
           </div>
         )}
         <div className="flex justify-between items-start mb-3">
-          <h4 className="font-semibold text-gray-800 text-sm leading-tight pr-2 flex-1">{task.task}</h4>
+          <h4 className="font-semibold text-gray-800 text-sm leading-tight pr-2 flex-1 line-clamp-2 break-words">{task.task}</h4>
           <div className="flex flex-col gap-1 items-end">
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
               task.status === 'todo' ? 'bg-red-200 text-red-700' :
@@ -420,6 +429,11 @@ const TaskProgress = () => {
             }`}>
               {statusColumns.find(col => col.id === task.status)?.title}
             </span>
+            {task.verified && (
+              <span className="mt-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-700 text-white">
+                Verified
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center justify-between mb-3">
@@ -707,7 +721,7 @@ const TaskProgress = () => {
       </div>
       {/* Master-Detail: Left = compact employee list, Right = selected employee detail */}
       <div className="p-4">
-        <div className="flex gap-6">
+        <div className="flex gap-6 h-[calc(100vh-var(--tp-header-height)-16px)] overflow-hidden">
           {/* Left column: compact scrollable employee list */}
           <div className="w-80 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-3 border-b">
@@ -750,7 +764,7 @@ const TaskProgress = () => {
           </div>
 
           {/* Right column: selected employee detail */}
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden">
             {(!selectedEmployeeId) ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center text-gray-500">Select an employee to view tasks</div>
             ) : (

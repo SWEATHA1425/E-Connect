@@ -114,9 +114,9 @@ const TaskPage = () => {
   const [showDailyProgress, setShowDailyProgress] = useState(false);
 
   const statusColumns = [
-    { id: "todo", title: "To Do", color: "bg-red-50", borderColor: "border-red-300" },
-    { id: "in-progress", title: "In Progress", color: "bg-blue-50", borderColor: "border-blue-300" },
-    { id: "completed", title: "Completed", color: "bg-green-50", borderColor: "border-green-300" },
+    { id: "todo", title: "To Do", color: "bg-gray-50", borderColor: "border-red-300" },
+    { id: "in-progress", title: "In Progress", color: "bg-gray-50", borderColor: "border-blue-300" },
+    { id: "completed", title: "Completed", color: "bg-gray-50", borderColor: "border-green-300" },
   ];
 
   const priorityColors = {
@@ -298,6 +298,7 @@ const TaskPage = () => {
           files: t.files || [],
           assignedBy: t.assigned_by || t.assignedBy || "Manager",
           priority: t.priority || "medium",
+          verified: t.verified || false,
           createdDate: t.created_date || t.date
         }));
         setTasks(formattedTasks);
@@ -358,47 +359,57 @@ const TaskPage = () => {
     }));
 
   const updateTaskStatus = async (taskId, newStatus) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
 
+  // 🛑 Prevent verified tasks from being moved back
+  if (task.verified === true && (newStatus === "todo" || newStatus === "in-progress")) {
+    toast.warning("Verified tasks cannot be moved back to To Do or In Progress.");
+    return;
+  }
+
+    // (verification guard handled above)
     try {
-      const requestBody = {
-        taskid: taskId,
-        userid: userId,
-        updated_task: Array.isArray(task.task) ? task.task[0] : task.task,
-        status: mapColumnToStatus(newStatus),
-        due_date: task.due_date,
-        priority: task.priority,
-        subtasks: normalizeSubtasks(task.subtasks),
-        comments: normalizeComments(task.comments),
-        files: normalizeFiles(task.files)
-      };
+    const requestBody = {
+      taskid: taskId,
+      userid: userId,
+      updated_task: Array.isArray(task.task) ? task.task[0] : task.task,
+      status: mapColumnToStatus(newStatus),
+      due_date: task.due_date,
+      priority: task.priority,
+      subtasks: normalizeSubtasks(task.subtasks),
+      comments: normalizeComments(task.comments),
+      files: normalizeFiles(task.files),
+    };
 
-      const response = await fetch(`${ipadr}/edit_task`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
+    const response = await fetch(`${ipadr}/edit_task`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.detail || "Failed to update task status");
-      }
-
-      // Update the local state
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === taskId ? { ...t, status: newStatus } : t
-        )
-      );
-
-      toast.success(`Task moved to ${statusColumns.find(col => col.id === newStatus)?.title}`);
-    } catch (error) {
-      toast.error(error.message);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || "Failed to update task status");
     }
-  };
+
+    // ✅ Update the local state only if allowed
+    setTasks(prevTasks =>
+      prevTasks.map(t =>
+        t.id === taskId ? { ...t, status: newStatus } : t
+      )
+    );
+
+    toast.success(
+      `Task moved to ${statusColumns.find(col => col.id === newStatus)?.title}`
+    );
+  } catch (error) {
+    toast.error(error.message);
+  }
+};
+
 
  const addTask = async () => {
   if (newTask.trim() === "") {
@@ -467,13 +478,28 @@ const TaskPage = () => {
     e.preventDefault();
   };
 
-  const handleDrop = async (e, newStatus) => {
-    e.preventDefault();
-    if (!draggedTask) return;
+  // const handleDrop = async (e, newStatus) => {
+  //   e.preventDefault();
+  //   if (!draggedTask) return;
 
-    await updateTaskStatus(draggedTask.id, newStatus);
+  //   await updateTaskStatus(draggedTask.id, newStatus);
+  //   setDraggedTask(null);
+  // };
+  const handleDrop = async (e, newStatus) => {
+  e.preventDefault();
+  if (!draggedTask) return;
+
+  // 🛑 Prevent verified tasks from being moved
+  if (draggedTask.verified === true) {
+    toast.warning("Verified tasks cannot be moved.");
     setDraggedTask(null);
-  };
+    return;
+  }
+
+  await updateTaskStatus(draggedTask.id, newStatus);
+  setDraggedTask(null);
+};
+
 
   const openTaskDetails = (task) => {
     navigate(`/User/task/${task.id}`, {
@@ -527,6 +553,13 @@ const TaskPage = () => {
             <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority] || priorityColors.medium}`}>
               {task.priority?.toUpperCase() || 'MEDIUM'}
             </span>
+
+            {task.verified && (
+  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-700 text-white">
+    Verified
+  </span>
+)}
+
           </div>
         </div>
         

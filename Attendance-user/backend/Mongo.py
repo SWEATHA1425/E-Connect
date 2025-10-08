@@ -1961,7 +1961,8 @@ def edit_the_task(
     priority=None,
     subtasks=None,
     comments=None,
-    files=None
+    files=None,
+    verified=None,
 ):
     update_fields = {}
 
@@ -1974,6 +1975,9 @@ def edit_the_task(
         update_fields["due_date"] = due_date
     if priority and priority != "string":
         update_fields["priority"] = priority
+
+    if verified is not None:
+        update_fields["verified"] = verified
 
     # Handle subtasks
     if subtasks is not None:
@@ -2030,12 +2034,27 @@ def edit_the_task(
     # Update DB
     if update_fields:
         # Get current task data before update for comparison
-        current_task = Tasks.find_one({"_id": ObjectId(taskid), "userid": userid})
+        # Match by _id first so that updates from managers/HR (who are not the task owner)
+        # can still apply (e.g., verification). Fall back to userid-based check is not
+        # needed here because application-level permissions are enforced elsewhere.
+        current_task = Tasks.find_one({"_id": ObjectId(taskid)})
         if not current_task:
             return "Task not found"
-        
+
+        # Prevent demotion of a task that has already been verified.
+        # If the task is verified and the caller does not explicitly unverify (verified: False),
+        # disallow changing status to anything other than a completed state.
+        if current_task.get("verified", False):
+            if "status" in update_fields:
+                new_status = str(update_fields.get("status") or "").strip().lower()
+                # consider any status containing 'completed' as completed
+                is_new_completed = "completed" in new_status
+                # if payload does not explicitly unverify and new status is not completed -> block
+                if not (update_fields.get("verified") is False) and not is_new_completed:
+                    return "Cannot demote verified task"
+
         result = Tasks.update_one(
-            {"_id": ObjectId(taskid), "userid": userid},
+            {"_id": ObjectId(taskid)},
             {"$set": update_fields}
         )
         
@@ -2800,6 +2819,7 @@ def get_the_tasks(userid: str, date: str = None):
             "subtasks": task.get("subtasks", []),   # ✅ ensure always list
             "comments": task.get("comments", []),   # ✅ new
             "files": files,    
+            "verified": task.get("verified", False),
             "taskid": str(task.get("_id"))
         }
         task_list.append(task_data)
@@ -2861,6 +2881,7 @@ def get_manager_only_tasks(userid: str, date: str = None):
             "subtasks": task.get("subtasks", []),
             "comments": task.get("comments", []),
             "files": files,  # Use processed files
+            "verified": task.get("verified", False),
             "taskid": str(task.get("_id"))
         }
         task_list.append(task_data)
@@ -3213,6 +3234,7 @@ def assigned_task(manager_name, userid=None):
     "subtasks": task.get("subtasks", []),
     "comments": task.get("comments", []),
     "files": task.get("files", []),
+    "verified": task.get("verified", False),
     "taskid": str(task.get("_id"))
 }
         task_list.append(task_data)  
@@ -3236,6 +3258,7 @@ def get_hr_assigned_tasks(hr_name: str, userid: str = None, date: str = None):
             "userid": task.get("userid"),
             "assigned_by": task.get("assigned_by", "self"),
             "priority": task.get("priority", "Medium"),
+            "verified": task.get("verified", False),
             "taskid": str(task.get("_id"))
         }
         task_list.append(task_data)
@@ -3272,6 +3295,7 @@ def get_manager_hr_assigned_tasks(userid: str, date: str = None):
             "subtasks": task.get("subtasks", []),
             "comments": task.get("comments", []),
             "files": files,
+            "verified": task.get("verified", False),
             "taskid": str(task.get("_id"))
         }
         task_list.append(task_data)
@@ -3308,6 +3332,7 @@ def get_hr_self_assigned_tasks(userid: str, date: str = None):
             "subtasks": task.get("subtasks", []),
             "comments": task.get("comments", []),
             "files": files,
+            "verified": task.get("verified", False),
             "taskid": str(task.get("_id"))
         }
         task_list.append(task_data)

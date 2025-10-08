@@ -51,12 +51,13 @@ function ConfirmModal({ open, title, message, onConfirm, onClose, confirmLabel =
 }
 
 // Note Component
+// Note Component
 const Note = ({ empdata, handleDelete, handleEdit }) => (
   <div
     className={`
       relative p-4 w-full flex flex-col justify-between rounded-xl 
-      shadow-md border border-blue-200 bg-blue-50 transition-all duration-300 transform 
-      hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-300/25 hover:z-20 cursor-pointer
+      shadow-sm border border-blue-200 bg-blue-50 transition-all duration-200 transform
+      hover:scale-[1.02] hover:shadow-lg hover:z-20 cursor-pointer
     `}
   >
     {/* Status indicator line */}
@@ -70,55 +71,60 @@ const Note = ({ empdata, handleDelete, handleEdit }) => (
       }`}
     />
 
-    <div className="mt-2">
-      <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center justify-between">
-        📝 {empdata.task?.length > 40 ? empdata.task.slice(0, 40) + "..." : empdata.task}
-      </h3>
+    {/* Verified badge (top-right) */}
+    {empdata.verified && (
+      <div className="absolute top-2 right-2">
+        <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-700 text-white">Verified</span>
+      </div>
+    )}
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="max-h-20 overflow-y-auto">
+  <h3 className="text-lg font-semibold text-gray-800 whitespace-pre-wrap break-words">
+    📝 {Array.isArray(empdata.task) ? empdata.task[0] : empdata.task}
+  </h3>
+</div>
+
 
       <ul className="text-sm text-gray-700 space-y-1">
         <li><span className="font-semibold">Assigned:</span> {empdata.date}</li>
         <li><span className="font-semibold">Due:</span> {empdata.due_date ? String(empdata.due_date).slice(0, 10) : "-"}</li>
         <li>
           <span className="font-semibold">Status:</span>
-          <span
-            className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-              empdata.status === 'Completed'
-                ? 'bg-green-100 text-green-700'
-                : empdata.status === 'In Progress'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-red-100 text-red-700'
-            }`}
-          >
+          <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+            empdata.status === 'Completed'
+              ? 'bg-green-100 text-green-700'
+              : empdata.status === 'In Progress'
+              ? 'bg-blue-100 text-blue-800'
+              : 'bg-red-100 text-red-700'
+          }`}>
             {empdata.status}
           </span>
         </li>
         <li><span className="font-semibold">Assigned By:</span> {empdata.assigned_by}</li>
         <li>
           <span className="font-semibold">Priority:</span>
-          <span
-            className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 border ${
-              empdata.priority === 'High'
-                ? 'border-red-500'
-                : empdata.priority === 'Medium'
-                ? 'border-blue-500'
-                : 'border-green-500'
-            }`}
-          >
+          <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 border ${
+            empdata.priority === 'High'
+              ? 'border-red-500'
+              : empdata.priority === 'Medium'
+              ? 'border-blue-500'
+              : 'border-green-500'
+          }`}>
             {empdata.priority}
           </span>
         </li>
       </ul>
 
       {empdata.subtasks?.length > 0 && (
-        <div className="mt-3 border-t pt-2">
-          <p className="font-medium text-gray-800 mb-1 text-sm">Subtasks:</p>
-          <ul className="text-xs text-gray-600 space-y-1 max-h-[70px] overflow-y-auto assigntask-thin-scrollbar">
+        <div className="mt-2 border-t pt-2">
+          <p className="font-medium text-gray-800 text-sm mb-1">Subtasks:</p>
+          <ul className="text-xs text-gray-600 max-h-24 overflow-y-auto assigntask-thin-scrollbar space-y-1">
             {empdata.subtasks.map((sub, i) => (
-              <li key={i} className="flex items-center">
-                <span className={`mr-2 ${sub.completed ? 'text-green-500' : 'text-gray-400'}`}>
+              <li key={i} className="flex items-center gap-1">
+                <span className={`${sub.completed ? 'text-green-500' : 'text-gray-400'}`}>
                   {sub.completed ? '✓' : '○'}
                 </span>
-                <span className={`${sub.completed ? 'line-through text-gray-500' : ''}`}>
+                <span className={`${sub.completed ? 'line-through text-gray-500' : ''} break-words`}>
                   {sub.title || sub.text}
                 </span>
               </li>
@@ -128,22 +134,29 @@ const Note = ({ empdata, handleDelete, handleEdit }) => (
       )}
     </div>
 
-    <div className="flex justify-end gap-3 mt-4">
+    <div className="flex justify-end gap-2 mt-3">
       <button
-        onClick={() => handleEdit(empdata.taskid || empdata._id || empdata.id)}
-        className="p-2 rounded-lg bg-green-50 hover:bg-green-100 text-green-700 transition"
+        onClick={() => {
+          if (empdata.verified) return toast.error('This task is verified and cannot be edited.');
+          handleEdit(empdata.taskid || empdata._id || empdata.id);
+        }}
+        className={`p-2 rounded-lg ${empdata.verified ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-50 hover:bg-green-100 text-green-700'} transition`}
       >
         <AiOutlineEdit className="text-xl" />
       </button>
       <button
-        onClick={() => handleDelete(empdata.taskid || empdata._id || empdata.id)}
-        className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 transition"
+        onClick={() => {
+          if (empdata.verified) return toast.error('This task is verified and cannot be deleted.');
+          handleDelete(empdata.taskid || empdata._id || empdata.id);
+        }}
+        className={`p-2 rounded-lg ${empdata.verified ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-50 hover:bg-red-100 text-red-700'} transition`}
       >
         <AiOutlineDelete className="text-xl" />
       </button>
     </div>
   </div>
 );
+
 
 
 
@@ -326,6 +339,10 @@ const handlePageChange = (direction) => {
       const response = await axios.get(`${ipadr}/get_single_task/${id}`);
       const taskdetails = response.data;
       let actualTaskData = Array.isArray(taskdetails) ? taskdetails[0] : (taskdetails.task || taskdetails);
+      // If the task is verified, prevent editing from AssignTask UI
+      if (actualTaskData.verified) {
+        return toast.error('This task is verified and cannot be edited.');
+      }
       // Ensure comments and files are present for later preservation
       SetEditmodel([{ 
         ...actualTaskData, 
@@ -362,6 +379,8 @@ const handlePageChange = (direction) => {
       return dateStr;
     };
     try {
+      // Defensive: don't allow creating/updating if modeldata indicates a verified flag
+      if (modeldata.verified) return toast.error('This task is verified and cannot be edited.');
       for (let i = 0; i < selectedUsers.length; i++) {
         const taskdetails = {
           Tasks: modeldata.task,
@@ -398,6 +417,7 @@ const handleoneditSubmit = async () => {
   try {
     if (!editModel || editModel.length === 0) return toast.error("No task data to update");
     const item = editModel[0];
+    if (item.verified) return toast.error('This task is verified and cannot be edited.');
 
     // Always format due_date as yyyy-mm-dd
     const formatDate = (dateStr) => {
@@ -554,6 +574,7 @@ const handleoneditSubmit = async () => {
       {modalOpen && editModel.length > 0 && createPortal(
         <Modal closeModal={() => { setModalOpen(false); SetEditmodel([]); }} onSubmit={handleoneditSubmit} onCancel={() => { setModalOpen(false); SetEditmodel([]); }}>
           {editModel.map((item, index) => {
+            const isVerifiedEdit = item?.verified === true;
             // Always format due_date as yyyy-mm-dd for the input
             const formatDate = (dateStr) => {
               if (!dateStr) return "";
@@ -568,15 +589,15 @@ const handleoneditSubmit = async () => {
               <div key={index} className="space-y-4 max-h-[60vh] overflow-y-auto">
                 <div>
                   <label className="block mb-1 font-semibold">Task</label>
-                  <textarea name="task" value={Array.isArray(item.task) ? item.task[0] : item.task || ""} onChange={e => { const updated = [...editModel]; updated[index].task = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2" rows="3" required placeholder="Enter task description..." />
+                  <textarea name="task" value={Array.isArray(item.task) ? item.task[0] : item.task || ""} onChange={e => { const updated = [...editModel]; updated[index].task = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2" rows="3" required placeholder="Enter task description..." disabled={isVerifiedEdit} />
                 </div>
                 <div>
                   <label className="block mb-1 font-semibold">Due Date</label>
-                  <input type="date" name="due_date" value={formatDate(item.due_date)} onChange={e => { const updated = [...editModel]; updated[index].due_date = e.target.value; SetEditmodel(updated); }} required className="w-full border border-gray-300 rounded px-3 py-2" />
+                  <input type="date" name="due_date" value={formatDate(item.due_date)} onChange={e => { const updated = [...editModel]; updated[index].due_date = e.target.value; SetEditmodel(updated); }} required className="w-full border border-gray-300 rounded px-3 py-2" disabled={isVerifiedEdit} />
                 </div>
               <div>
                 <label className="block mb-1 font-semibold">Status</label>
-                <select name="status" value={item.status || "To Do"} onChange={e => { const updated = [...editModel]; updated[index].status = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2">
+                <select name="status" value={item.status || "To Do"} onChange={e => { const updated = [...editModel]; updated[index].status = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2" disabled={isVerifiedEdit}>
                   <option value="">To Do</option>
                   <option value="In Progress">In Progress</option>
                   <option value="Completed">Completed</option>
@@ -584,7 +605,7 @@ const handleoneditSubmit = async () => {
               </div>
               <div>
                 <label className="block mb-1 font-semibold">Priority</label>
-                <select name="priority" value={item.priority || "Medium"} onChange={e => { const updated = [...editModel]; updated[index].priority = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2">
+                <select name="priority" value={item.priority || "Medium"} onChange={e => { const updated = [...editModel]; updated[index].priority = e.target.value; SetEditmodel(updated); }} className="w-full border border-gray-300 rounded px-3 py-2" disabled={isVerifiedEdit}>
                   <option value="" disabled hidden>Select Priority</option>
                    <option value="Low">Low</option>
                    <option value="Medium">Medium</option>
@@ -598,13 +619,13 @@ const handleoneditSubmit = async () => {
                   const completed = subtask.completed ?? subtask.done ?? false;
                   return (
                     <div key={subtask.id || `subtask-${sidx}`} className="flex items-center mb-2 bg-gray-50 p-2 rounded">
-                      <input type="checkbox" checked={completed} onChange={e => { const updated = [...editModel]; updated[index].subtasks[sidx].completed = e.target.checked; SetEditmodel(updated); }} className="mr-2" />
-                      <input type="text" value={text} onChange={e => { const updated = [...editModel]; updated[index].subtasks[sidx].text = e.target.value; SetEditmodel(updated); }} className="flex-1 border border-gray-300 rounded px-2 py-1" placeholder="Enter subtask description..." />
-                      <button type="button" onClick={() => { const updated = [...editModel]; updated[index].subtasks = updated[index].subtasks.filter((_, i) => i !== sidx); SetEditmodel(updated); }} className="ml-2 px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded">✕</button>
+                      <input type="checkbox" checked={completed} onChange={e => { const updated = [...editModel]; updated[index].subtasks[sidx].completed = e.target.checked; SetEditmodel(updated); }} className="mr-2" disabled={isVerifiedEdit} />
+                      <input type="text" value={text} onChange={e => { const updated = [...editModel]; updated[index].subtasks[sidx].text = e.target.value; SetEditmodel(updated); }} className="flex-1 border border-gray-300 rounded px-2 py-1" placeholder="Enter subtask description..." disabled={isVerifiedEdit} />
+                      <button type="button" onClick={() => { const updated = [...editModel]; updated[index].subtasks = updated[index].subtasks.filter((_, i) => i !== sidx); SetEditmodel(updated); }} className={`ml-2 px-2 py-1 rounded ${isVerifiedEdit ? 'text-gray-400 cursor-not-allowed' : 'text-red-500 hover:text-red-700 hover:bg-red-100'}`} disabled={isVerifiedEdit}>✕</button>
                     </div>
                   );
                 }) : <div className="text-gray-500 italic mb-2">No subtasks found</div>}
-                <button type="button" onClick={() => { const updated = [...editModel]; if (!updated[index].subtasks) updated[index].subtasks = []; updated[index].subtasks.push({ id: `subtask_${Date.now()}_${Math.random()}`, text: "", title: "", completed: false, done: false }); SetEditmodel(updated); }} className="w-full mt-2 py-2 px-4 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">+ Add Subtask</button>
+                <button type="button" onClick={() => { const updated = [...editModel]; if (!updated[index].subtasks) updated[index].subtasks = []; updated[index].subtasks.push({ id: `subtask_${Date.now()}_${Math.random()}`, text: "", title: "", completed: false, done: false }); SetEditmodel(updated); }} className={`w-full mt-2 py-2 px-4 rounded transition-colors ${isVerifiedEdit ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`} disabled={isVerifiedEdit}>+ Add Subtask</button>
               </div>
             </div>
             );
