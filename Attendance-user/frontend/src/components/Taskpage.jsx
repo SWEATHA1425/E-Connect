@@ -257,7 +257,8 @@ const TaskPage = () => {
       let endpoint;
 
       // Employees → only manager-assigned tasks
-      if (LS.get("position") === "Employee") {
+    const position = LS.get("position");
+    if (position === "user" || position === "Employee") {
         endpoint = `${ipadr}/get_manager_tasks/${userId}?date=${selectedDate}`;
       } else if (LS.get("position") === "Manager") {
         // Managers → only HR-assigned tasks, no self-assigned
